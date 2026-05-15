@@ -2,6 +2,10 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import models, schemas
 from database import engine, SessionLocal
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'AI_engine'))
+from affectation import affecter_projets
 
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -59,7 +63,7 @@ def get_encadrants(db: Session = Depends(get_db)):
 
 @app.post("/projets/", response_model=schemas.Projet)
 def create_projet(projet: schemas.ProjetCreate, db: Session = Depends(get_db)):
-    # Vérifier que l'encadrant existe
+    
     encadrant = db.query(models.Encadrant).filter(models.Encadrant.id == projet.encadrant_id).first()
     if not encadrant:
         raise HTTPException(status_code=404, detail="Encadrant introuvable")
@@ -76,17 +80,17 @@ def get_projets(db: Session = Depends(get_db)):
 
 @app.post("/choix/", response_model=schemas.Choix)
 def create_choix(choix: schemas.ChoixCreate, db: Session = Depends(get_db)):
-    # Vérifier que la priorité est entre 1 et 3
+    
     if choix.priorite not in [1, 2, 3]:
         raise HTTPException(status_code=400, detail="La priorité doit être 1, 2 ou 3")
-    # Vérifier que le groupe n'a pas déjà choisi ce projet
+    
     existant = db.query(models.Choix).filter(
         models.Choix.groupe_id == choix.groupe_id,
         models.Choix.projet_id == choix.projet_id
     ).first()
     if existant:
         raise HTTPException(status_code=400, detail="Ce groupe a déjà choisi ce projet")
-    # Vérifier que le groupe n'a pas déjà 3 choix
+    
     nb_choix = db.query(models.Choix).filter(models.Choix.groupe_id == choix.groupe_id).count()
     if nb_choix >= 3:
         raise HTTPException(status_code=400, detail="Ce groupe a déjà fait ses 3 choix")
@@ -99,3 +103,39 @@ def create_choix(choix: schemas.ChoixCreate, db: Session = Depends(get_db)):
 @app.get("/choix/", response_model=list[schemas.Choix])
 def get_choix(db: Session = Depends(get_db)):
     return db.query(models.Choix).all()
+
+
+
+
+@app.post("/affecter/")
+def lancer_affectation(db: Session = Depends(get_db)):
+    
+    tous_les_choix = db.query(models.Choix).all()
+    
+    if not tous_les_choix:
+        raise HTTPException(status_code=400, detail="Aucun choix enregistré")
+    
+    
+    choix_list = [
+        {
+            "groupe_id": c.groupe_id,
+            "projet_id": c.projet_id,
+            "priorite": c.priorite
+        }
+        for c in tous_les_choix
+    ]
+    
+    
+    resultats = affecter_projets(choix_list)
+    
+    
+    reponse = []
+    for groupe_id, projet_id in resultats.items():
+        groupe = db.query(models.Groupe).filter(models.Groupe.id == groupe_id).first()
+        projet = db.query(models.Projet).filter(models.Projet.id == projet_id).first() if projet_id else None
+        reponse.append({
+            "groupe": groupe.nom if groupe else f"Groupe {groupe_id}",
+            "projet_affecte": projet.titre if projet else "Aucun projet disponible"
+        })
+    
+    return {"affectations": reponse}
