@@ -122,7 +122,8 @@ def lancer_affectation(db: Session = Depends(get_db)):
         for c in tous_les_choix
     ]
 
-  
+    
+    resultats = affecter_projets(choix_list)
 
     
     db.query(models.Affectation).delete()
