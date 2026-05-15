@@ -58,3 +58,14 @@ class Choix(ChoixCreate):
     id: int
     class Config:
         from_attributes = True
+
+
+
+class Affectation(BaseModel):
+    id: int
+    groupe_id: int
+    projet_id: Optional[int] = None
+    valide: str
+
+    class Config:
+        from_attributes = True

@@ -44,3 +44,12 @@ class Choix(Base):
     priorite = Column(Integer)  # 1, 2 ou 3
     groupe = relationship("Groupe", back_populates="choix")
     projet = relationship("Projet", back_populates="choix")
+
+class Affectation(Base):
+    __tablename__ = "affectations"
+    id = Column(Integer, primary_key=True, index=True)
+    groupe_id = Column(Integer, ForeignKey("groupes.id"))
+    projet_id = Column(Integer, ForeignKey("projets.id"))
+    valide = Column(String(20), default="en_attente")  # en_attente, validé, modifié
+    groupe = relationship("Groupe")
+    projet = relationship("Projet")

@@ -107,27 +107,37 @@ def get_choix(db: Session = Depends(get_db)):
 
 
 
+
+
 @app.post("/affecter/")
 def lancer_affectation(db: Session = Depends(get_db)):
     
     tous_les_choix = db.query(models.Choix).all()
-    
     if not tous_les_choix:
         raise HTTPException(status_code=400, detail="Aucun choix enregistré")
-    
+
     
     choix_list = [
-        {
-            "groupe_id": c.groupe_id,
-            "projet_id": c.projet_id,
-            "priorite": c.priorite
-        }
+        {"groupe_id": c.groupe_id, "projet_id": c.projet_id, "priorite": c.priorite}
         for c in tous_les_choix
     ]
+
+  
+
     
+    db.query(models.Affectation).delete()
+    db.commit()
+
     
-    resultats = affecter_projets(choix_list)
-    
+    for groupe_id, projet_id in resultats.items():
+        nouvelle_affectation = models.Affectation(
+            groupe_id=groupe_id,
+            projet_id=projet_id,
+            valide="en_attente"
+        )
+        db.add(nouvelle_affectation)
+    db.commit()
+
     
     reponse = []
     for groupe_id, projet_id in resultats.items():
@@ -135,7 +145,38 @@ def lancer_affectation(db: Session = Depends(get_db)):
         projet = db.query(models.Projet).filter(models.Projet.id == projet_id).first() if projet_id else None
         reponse.append({
             "groupe": groupe.nom if groupe else f"Groupe {groupe_id}",
-            "projet_affecte": projet.titre if projet else "Aucun projet disponible"
+            "projet_affecte": projet.titre if projet else "Aucun projet disponible",
+            "statut": "en_attente"
         })
-    
+
     return {"affectations": reponse}
+
+
+@app.get("/affectations/", response_model=list[schemas.Affectation])
+def get_affectations(db: Session = Depends(get_db)):
+    return db.query(models.Affectation).all()
+
+
+@app.put("/affectations/{affectation_id}/valider")
+def valider_affectation(affectation_id: int, db: Session = Depends(get_db)):
+    affectation = db.query(models.Affectation).filter(models.Affectation.id == affectation_id).first()
+    if not affectation:
+        raise HTTPException(status_code=404, detail="Affectation introuvable")
+    affectation.valide = "validé"
+    db.commit()
+    return {"message": f"Affectation {affectation_id} validée ✅"}
+
+
+@app.put("/affectations/{affectation_id}/modifier")
+def modifier_affectation(affectation_id: int, nouveau_projet_id: int, db: Session = Depends(get_db)):
+    affectation = db.query(models.Affectation).filter(models.Affectation.id == affectation_id).first()
+    if not affectation:
+        raise HTTPException(status_code=404, detail="Affectation introuvable")
+    
+    projet = db.query(models.Projet).filter(models.Projet.id == nouveau_projet_id).first()
+    if not projet:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    affectation.projet_id = nouveau_projet_id
+    affectation.valide = "modifié"
+    db.commit()
+    return {"message": f"Affectation {affectation_id} modifiée → {projet.titre} ✅"}
