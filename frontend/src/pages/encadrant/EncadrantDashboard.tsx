@@ -1,7 +1,32 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getProjets, getAffectations } from '../../services/api'
 
 function EncadrantDashboard() {
   const navigate = useNavigate()
+  const [nbProjets, setNbProjets] = useState(0)
+  const [nbValides, setNbValides] = useState(0)
+  const [nbAttente, setNbAttente] = useState(0)
+  const [nomEncadrant, setNomEncadrant] = useState('')
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (user?.nom) setNomEncadrant(user.nom)
+
+    // Récupérer les projets de cet encadrant
+    getProjets().then(res => {
+      const mesProjets = res.data.filter((p: any) => p.encadrant_id === user.encadrant_id)
+      setNbProjets(mesProjets.length)
+    })
+
+    // Récupérer les affectations
+    getAffectations().then(res => {
+      const valides = res.data.filter((a: any) => a.valide === 'validé').length
+      const attente = res.data.filter((a: any) => a.valide === 'en_attente').length
+      setNbValides(valides)
+      setNbAttente(attente)
+    })
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -16,8 +41,10 @@ function EncadrantDashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2 bg-purple-700 px-4 py-2 rounded-full">
-          <div className="bg-purple-500 rounded-full w-8 h-8 flex items-center justify-center font-bold">E</div>
-          <span className="text-sm">Espace Encadrant</span>
+          <div className="bg-purple-500 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+            {nomEncadrant.charAt(0).toUpperCase()}
+          </div>
+          <span className="text-sm">{nomEncadrant || 'Encadrant'}</span>
         </div>
       </nav>
 
@@ -26,7 +53,7 @@ function EncadrantDashboard() {
         <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full uppercase tracking-widest">
           Tableau de bord
         </span>
-        <h1 className="text-3xl font-bold mt-4 mb-2">Bienvenue sur votre espace</h1>
+        <h1 className="text-3xl font-bold mt-4 mb-2">Bienvenue, {nomEncadrant} !</h1>
         <p className="text-purple-200 max-w-lg">
           Proposez vos sujets de projets, consultez les affectations et validez les résultats du moteur IA.
         </p>
@@ -34,15 +61,15 @@ function EncadrantDashboard() {
         {/* Stats */}
         <div className="flex gap-10 mt-8">
           <div>
-            <p className="text-2xl font-bold">0</p>
+            <p className="text-2xl font-bold">{nbProjets}</p>
             <p className="text-purple-300 text-sm">Projets proposés</p>
           </div>
           <div>
-            <p className="text-2xl font-bold">0</p>
+            <p className="text-2xl font-bold">{nbValides}</p>
             <p className="text-purple-300 text-sm">Affectations validées</p>
           </div>
           <div>
-            <p className="text-2xl font-bold">0</p>
+            <p className="text-2xl font-bold">{nbAttente}</p>
             <p className="text-purple-300 text-sm">En attente</p>
           </div>
         </div>
@@ -55,7 +82,6 @@ function EncadrantDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          {/* Carte 1 */}
           <div className="bg-white rounded-2xl shadow p-6 border border-gray-100">
             <div className="flex justify-between items-start mb-4">
               <div className="bg-purple-100 p-3 rounded-xl text-2xl">📋</div>
@@ -73,7 +99,6 @@ function EncadrantDashboard() {
             </button>
           </div>
 
-          {/* Carte 2 */}
           <div className="bg-white rounded-2xl shadow p-6 border border-gray-100">
             <div className="flex justify-between items-start mb-4">
               <div className="bg-purple-100 p-3 rounded-xl text-2xl">✅</div>
@@ -93,15 +118,16 @@ function EncadrantDashboard() {
 
         </div>
 
-        {/* Retour */}
         <button
-          onClick={() => navigate('/')}
-          className="mt-8 text-gray-400 hover:text-gray-600 text-sm"
+          onClick={() => {
+            localStorage.removeItem('user')
+            navigate('/')
+          }}
+          className="mt-8 text-gray-400 hover:text-red-500 text-sm"
         >
-          ← Retour à l'accueil
+          → Se déconnecter
         </button>
       </div>
-
     </div>
   )
 }
