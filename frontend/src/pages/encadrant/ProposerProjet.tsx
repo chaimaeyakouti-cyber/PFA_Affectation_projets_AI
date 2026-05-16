@@ -1,33 +1,44 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { creerProjet, getEncadrants } from '../../services/api'
+import { creerProjet } from '../../services/api'
 
 function ProposerProjet() {
   const navigate = useNavigate()
-  const [encadrants, setEncadrants] = useState<any[]>([])
   const [form, setForm] = useState({
     titre: '',
     description: '',
     competences_requises: '',
-    encadrant_id: ''
   })
   const [message, setMessage] = useState('')
   const [erreur, setErreur] = useState('')
+  const [encadrantId, setEncadrantId] = useState<number | null>(null)
+  const [nomEncadrant, setNomEncadrant] = useState('')
 
   useEffect(() => {
-    getEncadrants().then(res => setEncadrants(res.data))
+    // Récupérer l'encadrant connecté depuis le localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (user?.id) {
+      setEncadrantId(user.id)
+      setNomEncadrant(`${user.nom}`)
+    } else {
+      navigate('/')
+    }
   }, [])
 
   const handleSubmit = async () => {
-    if (!form.titre || !form.description || !form.competences_requises || !form.encadrant_id) {
+    if (!form.titre || !form.description || !form.competences_requises) {
       setErreur('Veuillez remplir tous les champs.')
       return
     }
+    if (!encadrantId) {
+      setErreur('Encadrant introuvable. Reconnectez-vous.')
+      return
+    }
     try {
-      await creerProjet({ ...form, encadrant_id: parseInt(form.encadrant_id) })
+      await creerProjet({ ...form, encadrant_id: encadrantId })
       setMessage('Projet proposé avec succès ✅')
       setErreur('')
-      setForm({ titre: '', description: '', competences_requises: '', encadrant_id: '' })
+      setForm({ titre: '', description: '', competences_requises: '' })
     } catch {
       setErreur('Erreur lors de la création du projet.')
     }
@@ -47,7 +58,7 @@ function ProposerProjet() {
         </div>
         <div className="flex items-center gap-2 bg-purple-700 px-4 py-2 rounded-full">
           <div className="bg-purple-500 rounded-full w-8 h-8 flex items-center justify-center font-bold">E</div>
-          <span className="text-sm">Espace Encadrant</span>
+          <span className="text-sm">{nomEncadrant || 'Encadrant'}</span>
         </div>
       </nav>
 
@@ -64,6 +75,11 @@ function ProposerProjet() {
       <div className="max-w-2xl mx-auto px-8 py-10">
         <div className="bg-white rounded-2xl shadow p-8 border border-gray-100">
 
+          {/* Info encadrant */}
+          <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 mb-6 text-purple-700 text-sm">
+            📋 Vous proposez ce projet en tant que <strong>{nomEncadrant}</strong>
+          </div>
+
           {message && (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-6">
               {message}
@@ -74,23 +90,6 @@ function ProposerProjet() {
               {erreur}
             </div>
           )}
-
-          {/* Encadrant */}
-          <div className="mb-5">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Encadrant</label>
-            <select
-              value={form.encadrant_id}
-              onChange={e => setForm({ ...form, encadrant_id: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-400"
-            >
-              <option value="">Sélectionnez un encadrant</option>
-              {encadrants.map((enc: any) => (
-                <option key={enc.id} value={enc.id}>
-                  {enc.prenom} {enc.nom}
-                </option>
-              ))}
-            </select>
-          </div>
 
           {/* Titre */}
           <div className="mb-5">

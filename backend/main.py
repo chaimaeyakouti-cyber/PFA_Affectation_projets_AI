@@ -230,3 +230,10 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     if not db_user or db_user.mot_de_passe != hash_password(user.mot_de_passe):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     return db_user
+
+@app.get("/user-by-email", response_model=schemas.UserResponse)
+def get_user_by_email(email: str, db: Session = Depends(get_db)):
+    user = db.query(models.Utilisateur).filter(models.Utilisateur.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    return user
