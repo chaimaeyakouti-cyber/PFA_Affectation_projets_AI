@@ -10,6 +10,16 @@ from affectation import affecter_projets
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 def get_db():
     db = SessionLocal()
     try:
@@ -181,3 +191,4 @@ def modifier_affectation(affectation_id: int, nouveau_projet_id: int, db: Sessio
     affectation.valide = "modifié"
     db.commit()
     return {"message": f"Affectation {affectation_id} modifiée → {projet.titre} ✅"}
+
