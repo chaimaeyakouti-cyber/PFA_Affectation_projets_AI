@@ -53,3 +53,11 @@ class Affectation(Base):
     valide = Column(String(20), default="en_attente")  # en_attente, validé, modifié
     groupe = relationship("Groupe")
     projet = relationship("Projet")
+
+class Utilisateur(Base):
+    __tablename__ = "utilisateurs"
+    id = Column(Integer, primary_key=True, index=True)
+    nom = Column(String(100))
+    email = Column(String(100), unique=True)
+    mot_de_passe = Column(String(255))
+    role = Column(String(20))  

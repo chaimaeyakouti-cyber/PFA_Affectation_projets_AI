@@ -4,6 +4,7 @@ import models, schemas
 from database import engine, SessionLocal
 import sys
 import os
+import hashlib
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'AI_engine'))
 from affectation import affecter_projets
 
@@ -192,3 +193,40 @@ def modifier_affectation(affectation_id: int, nouveau_projet_id: int, db: Sessio
     db.commit()
     return {"message": f"Affectation {affectation_id} modifiée → {projet.titre} ✅"}
 
+
+# AUTHENTIFICATION
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+@app.post("/register", response_model=schemas.UserResponse)
+def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
+    
+    existant = db.query(models.Utilisateur).filter(
+        models.Utilisateur.email == user.email
+    ).first()
+    if existant:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    # Vérifier le rôle
+    if user.role not in ["etudiant", "encadrant", "coordinateur"]:
+        raise HTTPException(status_code=400, detail="Rôle invalide")
+    new_user = models.Utilisateur(
+        nom=user.nom,
+        email=user.email,
+        mot_de_passe=hash_password(user.mot_de_passe),
+        role=user.role
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+@app.post("/login", response_model=schemas.UserResponse)
+def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(models.Utilisateur).filter(
+        models.Utilisateur.email == user.email
+    ).first()
+    if not db_user or db_user.mot_de_passe != hash_password(user.mot_de_passe):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    return db_user

@@ -69,3 +69,23 @@ class Affectation(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+class UserRegister(BaseModel):
+    nom: str
+    email: str
+    mot_de_passe: str
+    role: str  # etudiant, encadrant, coordinateur
+
+class UserLogin(BaseModel):
+    email: str
+    mot_de_passe: str
+
+class UserResponse(BaseModel):
+    id: int
+    nom: str
+    email: str
+    role: str
+    class Config:
+        from_attributes = True
