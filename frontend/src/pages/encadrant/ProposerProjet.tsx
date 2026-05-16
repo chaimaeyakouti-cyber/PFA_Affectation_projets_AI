@@ -15,13 +15,12 @@ function ProposerProjet() {
   const [nomEncadrant, setNomEncadrant] = useState('')
 
   useEffect(() => {
-    // Récupérer l'encadrant connecté depuis le localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}')
-    if (user?.id) {
-      setEncadrantId(user.id)
-      setNomEncadrant(`${user.nom}`)
+    if (user?.encadrant_id) {
+      setEncadrantId(user.encadrant_id)
+      setNomEncadrant(user.nom)
     } else {
-      navigate('/')
+      setErreur('Compte encadrant non lié. Recréez votre compte.')
     }
   }, [])
 

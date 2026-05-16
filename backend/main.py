@@ -202,15 +202,14 @@ def hash_password(password: str) -> str:
 
 @app.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
-    
     existant = db.query(models.Utilisateur).filter(
         models.Utilisateur.email == user.email
     ).first()
     if existant:
         raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    # Vérifier le rôle
     if user.role not in ["etudiant", "encadrant", "coordinateur"]:
         raise HTTPException(status_code=400, detail="Rôle invalide")
+
     new_user = models.Utilisateur(
         nom=user.nom,
         email=user.email,
@@ -220,6 +219,24 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # Si c'est un encadrant → créer automatiquement dans la table encadrants
+    if user.role == "encadrant":
+        parts = user.nom.strip().split(' ')
+        nom = parts[0]
+        prenom = parts[1] if len(parts) > 1 else parts[0]
+        new_encadrant = models.Encadrant(
+            nom=nom,
+            prenom=prenom,
+            email=user.email
+        )
+        db.add(new_encadrant)
+        db.commit()
+        db.refresh(new_encadrant)
+        # Sauvegarder l'id encadrant dans utilisateur
+        new_user.encadrant_id = new_encadrant.id
+        db.commit()
+
     return new_user
 
 @app.post("/login", response_model=schemas.UserResponse)

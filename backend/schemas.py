@@ -87,5 +87,6 @@ class UserResponse(BaseModel):
     nom: str
     email: str
     role: str
+    encadrant_id: Optional[int] = None
     class Config:
         from_attributes = True

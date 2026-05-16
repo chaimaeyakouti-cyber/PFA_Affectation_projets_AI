@@ -24,5 +24,5 @@ export const getChoix = () => API.get('/choix/')
 export const lancerAffectation = () => API.post('/affecter/')
 export const getAffectations = () => API.get('/affectations/')
 export const validerAffectation = (id: number) => API.put(`/affectations/${id}/valider`)
-export const modifierAffectation = (id: number, nouveau_projet_id: number) => 
+export const modifierAffectation = (id: number, nouveau_projet_id: number) =>
   API.put(`/affectations/${id}/modifier?nouveau_projet_id=${nouveau_projet_id}`)

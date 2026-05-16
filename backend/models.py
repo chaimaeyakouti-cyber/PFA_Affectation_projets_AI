@@ -60,4 +60,5 @@ class Utilisateur(Base):
     nom = Column(String(100))
     email = Column(String(100), unique=True)
     mot_de_passe = Column(String(255))
-    role = Column(String(20))  
+    role = Column(String(20))
+    encadrant_id = Column(Integer, nullable=True)  # lien vers table encadrants
