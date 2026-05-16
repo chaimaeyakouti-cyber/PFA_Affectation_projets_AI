@@ -13,18 +13,15 @@ function EncadrantDashboard() {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (user?.nom) setNomEncadrant(user.nom)
 
-    // Récupérer les projets de cet encadrant
-    getProjets().then(res => {
-      const mesProjets = res.data.filter((p: any) => p.encadrant_id === user.encadrant_id)
+    Promise.all([getProjets(), getAffectations()]).then(([projRes, affRes]) => {
+      const mesProjets = projRes.data.filter((p: any) => p.encadrant_id === user.encadrant_id)
       setNbProjets(mesProjets.length)
-    })
 
-    // Récupérer les affectations
-    getAffectations().then(res => {
-      const valides = res.data.filter((a: any) => a.valide === 'validé').length
-      const attente = res.data.filter((a: any) => a.valide === 'en_attente').length
-      setNbValides(valides)
-      setNbAttente(attente)
+      const mesProjetsIds = mesProjets.map((p: any) => p.id)
+      const mesAffectations = affRes.data.filter((a: any) => mesProjetsIds.includes(a.projet_id))
+
+      setNbValides(mesAffectations.filter((a: any) => a.valide === 'validé').length)
+      setNbAttente(mesAffectations.filter((a: any) => a.valide === 'en_attente').length)
     })
   }, [])
 

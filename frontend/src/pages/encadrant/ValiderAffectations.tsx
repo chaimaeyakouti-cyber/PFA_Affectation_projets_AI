@@ -9,8 +9,23 @@ function ValiderAffectations() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    getAffectations().then(res => setAffectations(res.data))
-    getProjets().then(res => setProjets(res.data))
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    
+    Promise.all([getAffectations(), getProjets()]).then(([affRes, projRes]) => {
+      const tousProjets = projRes.data
+      setProjets(tousProjets)
+
+      // Filtrer uniquement les projets de cet encadrant
+      const mesProjetsIds = tousProjets
+        .filter((p: any) => p.encadrant_id === user.encadrant_id)
+        .map((p: any) => p.id)
+
+      // Filtrer les affectations liées à mes projets
+      const mesAffectations = affRes.data.filter((a: any) => 
+        mesProjetsIds.includes(a.projet_id)
+      )
+      setAffectations(mesAffectations)
+    })
   }, [])
 
   const handleValider = async (id: number) => {
