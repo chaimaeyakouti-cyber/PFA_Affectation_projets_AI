@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { creerGroupe, getProjets, creerChoix, getGroupes } from '../../services/api'
+import { creerGroupe, getProjets, creerChoix, getMonGroupe, lierGroupe } from '../../services/api'
 
 const P = {
   bg: '#F8F7FC',
@@ -14,10 +14,14 @@ const P = {
   border: '#DDD6FE',
   error: '#DC2626',
   success: '#059669',
+  successBg: '#D1FAE5',
+  warningBg: '#FFFBEB',
+  warningText: '#92400E',
 }
 
 interface Etudiant { nom: string; prenom: string; email: string; filiere: string }
 interface Projet { id: number; titre: string; description: string; encadrant_id: number }
+interface GroupeExistant { id: number; nom: string; etudiants: any[] }
 
 type Step = 'groupe' | 'choix' | 'done'
 
@@ -25,37 +29,67 @@ export default function CreerGroupe() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('groupe')
 
+  // Utilisateur connecté
+  const [currentUser] = useState<any>(() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} }
+  })
+
   // Step 1 - Groupe
   const [nomGroupe, setNomGroupe] = useState('')
-  const [etudiants, setEtudiants] = useState<Etudiant[]>([{ nom: '', prenom: '', email: '', filiere: '' }])
+  const [etudiants, setEtudiants] = useState<Etudiant[]>([])
   const [groupeId, setGroupeId] = useState<number | null>(null)
   const [loadingGroupe, setLoadingGroupe] = useState(false)
   const [errGroupe, setErrGroupe] = useState('')
 
   // Step 2 - Choix
   const [projets, setProjets] = useState<Projet[]>([])
-  const [choix, setChoix] = useState<{ priorite: number; projet_id: number | null }[]>([
-    { priorite: 1, projet_id: null },
-    { priorite: 2, projet_id: null },
-    { priorite: 3, projet_id: null },
+  const [choix, setChoix] = useState([
+    { priorite: 1, projet_id: null as number | null },
+    { priorite: 2, projet_id: null as number | null },
+    { priorite: 3, projet_id: null as number | null },
   ])
   const [loadingChoix, setLoadingChoix] = useState(false)
   const [errChoix, setErrChoix] = useState('')
 
-  // Check if groupe already exists
-  const [existingGroupe, setExistingGroupe] = useState<any>(null)
+  // Groupe existant de l'utilisateur
+  const [monGroupe, setMonGroupe] = useState<GroupeExistant | null>(null)
+  const [loadingCheck, setLoadingCheck] = useState(true)
 
+  // ── Initialisation ──────────────────────────────────────────
   useEffect(() => {
-    const load = async () => {
+    const init = async () => {
+      setLoadingCheck(true)
       try {
-        const [p, g] = await Promise.all([getProjets(), getGroupes()])
+        // Charger les projets
+        const p = await getProjets()
         setProjets(p.data)
-        if (g.data.length > 0) setExistingGroupe(g.data[g.data.length - 1])
+
+        // Vérifier si l'utilisateur a déjà un groupe
+        if (currentUser?.id && currentUser?.groupe_id) {
+          const g = await getMonGroupe(currentUser.id)
+          setMonGroupe(g.data)
+        }
       } catch (_) {}
+      setLoadingCheck(false)
     }
-    load()
+
+    // Pré-remplir le premier étudiant avec les infos du compte connecté
+    if (currentUser?.nom) {
+      const parts = (currentUser.nom || '').trim().split(' ')
+      setEtudiants([{
+        nom: currentUser.nom || '',
+        prenom: parts.slice(1).join(' ') || parts[0] || '',
+        email: currentUser.email || '',
+        filiere: '',
+      }])
+    } else {
+      setEtudiants([{ nom: '', prenom: '', email: '', filiere: '' }])
+    }
+
+    init()
   }, [])
 
+  // ── Handlers groupe ─────────────────────────────────────────
   const addEtudiant = () => {
     if (etudiants.length < 3) setEtudiants([...etudiants, { nom: '', prenom: '', email: '', filiere: '' }])
   }
@@ -78,38 +112,51 @@ export default function CreerGroupe() {
 
     setLoadingGroupe(true)
     try {
-      // Séparer "Nom complet" en nom + prenom pour le backend
-      const etudiantsFormatted = etudiants.map(e => {
+      const etudiantsFormatted = etudiants.map((e, idx) => {
         const parts = e.nom.trim().split(' ')
         return {
           nom: parts[0] || '',
           prenom: parts.slice(1).join(' ') || parts[0] || '',
-          filiere: e.filiere
+          filiere: e.filiere,
+          // Lier le 1er étudiant au compte connecté
+          utilisateur_id: idx === 0 ? (currentUser?.id || null) : null,
         }
       })
 
-      const res = await creerGroupe({ nom: nomGroupe, etudiants: etudiantsFormatted })
-      setGroupeId(res.data.id)
+      const res = await creerGroupe({
+        nom: nomGroupe,
+        etudiants: etudiantsFormatted,
+        createur_id: currentUser?.id || null,  // ← Lier le créateur au groupe
+      })
+
+      const newGroupeId = res.data.id
+      setGroupeId(newGroupeId)
+
+      // Mettre à jour le localStorage avec le groupe_id
+      const updatedUser = { ...currentUser, groupe_id: newGroupeId }
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+
       setStep('choix')
     } catch (e: any) {
       const detail = e?.response?.data?.detail
       setErrGroupe(
-        typeof detail === 'string'
-          ? detail
-          : Array.isArray(detail)
-            ? detail.map((d: any) => d.msg).join(', ')
-            : 'Erreur lors de la création du groupe.'
+        typeof detail === 'string' ? detail :
+        Array.isArray(detail) ? detail.map((d: any) => d.msg).join(', ') :
+        'Erreur lors de la création du groupe.'
       )
     } finally {
       setLoadingGroupe(false)
     }
   }
 
-  const handleUseExisting = () => {
-    setGroupeId(existingGroupe.id)
+  // Utiliser son groupe existant pour soumettre des choix
+  const handleUtiliserMonGroupe = () => {
+    if (!monGroupe) return
+    setGroupeId(monGroupe.id)
     setStep('choix')
   }
 
+  // ── Handlers choix ──────────────────────────────────────────
   const handleChoixChange = (priorite: number, projet_id: number) => {
     setChoix(prev => prev.map(c => c.priorite === priorite ? { ...c, projet_id } : c))
   }
@@ -130,11 +177,9 @@ export default function CreerGroupe() {
     } catch (e: any) {
       const detail = e?.response?.data?.detail
       setErrChoix(
-        typeof detail === 'string'
-          ? detail
-          : Array.isArray(detail)
-            ? detail.map((d: any) => d.msg).join(', ')
-            : 'Erreur lors de la soumission des choix.'
+        typeof detail === 'string' ? detail :
+        Array.isArray(detail) ? detail.map((d: any) => d.msg).join(', ') :
+        'Erreur lors de la soumission des choix.'
       )
     } finally {
       setLoadingChoix(false)
@@ -143,6 +188,7 @@ export default function CreerGroupe() {
 
   const filieres = ['ICCN', 'DATA', 'SmartICT', 'ASEDS', 'CLOUD', 'AMOA', 'SesNum']
 
+  // ── Render ───────────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: P.bg, fontFamily: "'Crimson Pro', 'Georgia', serif" }}>
       <style>{`
@@ -173,7 +219,7 @@ export default function CreerGroupe() {
               <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: step === s ? P.accent : ((['groupe', 'choix', 'done'].indexOf(step) > i) ? '#10B981' : 'rgba(255,255,255,0.2)'),
+                  background: step === s ? P.accent : (['groupe', 'choix', 'done'].indexOf(step) > i ? '#10B981' : 'rgba(255,255,255,0.2)'),
                   color: '#fff', fontSize: 12, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
                 }}>
                   {['groupe', 'choix', 'done'].indexOf(step) > i ? '✓' : i + 1}
@@ -187,26 +233,55 @@ export default function CreerGroupe() {
 
       <main style={{ maxWidth: 860, margin: '0 auto', padding: '40px 24px' }}>
 
+        {/* ─── CHARGEMENT ─── */}
+        {loadingCheck && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: P.muted, fontFamily: "'DM Sans', sans-serif" }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>Vérification de votre compte...
+          </div>
+        )}
+
         {/* ─── STEP 1: CRÉER GROUPE ─── */}
-        {step === 'groupe' && (
+        {!loadingCheck && step === 'groupe' && (
           <div>
             <h1 style={{ margin: '0 0 6px', color: P.text, fontSize: 30, fontWeight: 700 }}>Créer votre groupe</h1>
-            <p style={{ margin: '0 0 32px', color: P.muted, fontSize: 15, fontFamily: "'DM Sans', sans-serif" }}>Renseignez le nom du groupe et les informations de chaque étudiant (1 à 3 membres).</p>
+            <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 15, fontFamily: "'DM Sans', sans-serif" }}>
+              Renseignez le nom du groupe et les informations de chaque membre (1 à 3 personnes).
+            </p>
 
-            {/* Existing group notice */}
-            {existingGroupe && (
-              <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ margin: 0, color: '#92400E', fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>⚠️ Un groupe existe déjà : <strong>{existingGroupe.nom}</strong></p>
-                  <p style={{ margin: '4px 0 0', color: '#B45309', fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>Utilisez-le ou créez-en un nouveau.</p>
+            {/* ← NOUVEAU : Groupe existant détecté */}
+            {monGroupe && (
+              <div style={{ background: P.warningBg, border: '1px solid #FCD34D', borderRadius: 12, padding: '18px 22px', marginBottom: 28 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ margin: '0 0 4px', color: P.warningText, fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>
+                      📁 Vous avez déjà un groupe : <strong>{monGroupe.nom}</strong>
+                    </p>
+                    <p style={{ margin: 0, color: '#B45309', fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+                      {monGroupe.etudiants?.length || 0} membre(s) · Voulez-vous soumettre vos choix de projets avec ce groupe ?
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleUtiliserMonGroupe}
+                    style={{ background: '#F59E0B', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, whiteSpace: 'nowrap', marginLeft: 16 }}
+                  >
+                    Utiliser ce groupe →
+                  </button>
                 </div>
-                <button onClick={handleUseExisting} style={{ background: '#F59E0B', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
-                  Utiliser ce groupe
-                </button>
               </div>
             )}
 
             <div style={{ background: P.card, borderRadius: 16, border: `1px solid ${P.border}`, padding: '32px 36px' }}>
+
+              {/* ← NOUVEAU : Bandeau "pré-rempli depuis votre compte" */}
+              {currentUser?.nom && (
+                <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>👤</span>
+                  <span style={{ color: '#1E40AF', fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+                    Les informations du <strong>premier membre ont été pré-remplies</strong> depuis votre compte <em>({currentUser.email})</em>.
+                  </span>
+                </div>
+              )}
+
               {/* Nom du groupe */}
               <div style={{ marginBottom: 28 }}>
                 <label style={{ display: 'block', color: P.text, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, marginBottom: 8 }}>
@@ -217,10 +292,7 @@ export default function CreerGroupe() {
                   value={nomGroupe}
                   onChange={e => setNomGroupe(e.target.value)}
                   placeholder="Ex : Groupe Alpha"
-                  style={{
-                    width: '100%', padding: '12px 16px', borderRadius: 10, fontSize: 15,
-                    border: `1.5px solid ${P.border}`, background: P.bg, color: P.text,
-                  }}
+                  style={{ width: '100%', padding: '12px 16px', borderRadius: 10, fontSize: 15, border: `1.5px solid ${P.border}`, background: P.bg, color: P.text }}
                 />
               </div>
 
@@ -231,11 +303,7 @@ export default function CreerGroupe() {
                     Membres du groupe <span style={{ color: P.muted, fontWeight: 400 }}>({etudiants.length}/3)</span>
                   </label>
                   {etudiants.length < 3 && (
-                    <button className="add-btn" onClick={addEtudiant} style={{
-                      background: P.light, color: P.mid, border: `1px solid ${P.border}`,
-                      borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13,
-                      fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-                    }}>
+                    <button className="add-btn" onClick={addEtudiant} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
                       + Ajouter un membre
                     </button>
                   )}
@@ -245,19 +313,26 @@ export default function CreerGroupe() {
                   {etudiants.map((e, i) => (
                     <div key={i} style={{ background: P.light, borderRadius: 12, padding: '20px 24px', position: 'relative' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                        <span style={{ color: P.mid, fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>Étudiant {i + 1}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ color: P.mid, fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>Étudiant {i + 1}</span>
+                          {/* ← NOUVEAU : Badge "Vous" pour le premier membre */}
+                          {i === 0 && currentUser?.nom && (
+                            <span style={{ background: P.accent, color: '#fff', fontSize: 10, fontFamily: "'DM Sans', sans-serif", padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>
+                              Vous
+                            </span>
+                          )}
+                        </div>
                         {etudiants.length > 1 && (
-                          <button className="remove-btn" onClick={() => removeEtudiant(i)} style={{
-                            background: 'transparent', border: 'none', color: P.muted,
-                            cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif", borderRadius: 6, padding: '4px 10px',
-                          }}>✕ Retirer</button>
+                          <button className="remove-btn" onClick={() => removeEtudiant(i)} style={{ background: 'transparent', border: 'none', color: P.muted, cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif", borderRadius: 6, padding: '4px 10px' }}>
+                            ✕ Retirer
+                          </button>
                         )}
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                         {([
-                          { field: 'nom', label: 'Nom complet', placeholder: 'Nom Prénom' },
-                          { field: 'email', label: 'Email INPT', placeholder: 'nom@inpt.ac.ma' },
-                        ] as { field: keyof Etudiant; label: string; placeholder: string }[]).map(f => (
+                          { field: 'nom' as keyof Etudiant, label: 'Nom complet', placeholder: 'Nom Prénom' },
+                          { field: 'email' as keyof Etudiant, label: 'Email INPT', placeholder: 'nom@inpt.ac.ma' },
+                        ]).map(f => (
                           <div key={f.field}>
                             <label style={{ display: 'block', color: P.text, fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}>{f.label}</label>
                             <input
@@ -265,9 +340,12 @@ export default function CreerGroupe() {
                               value={e[f.field]}
                               onChange={ev => updateEtudiant(i, f.field, ev.target.value)}
                               placeholder={f.placeholder}
+                              // ← NOUVEAU : champs en lecture seule pour le 1er membre (email pré-rempli)
+                              readOnly={i === 0 && f.field === 'email' && !!currentUser?.email}
                               style={{
                                 width: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 13,
-                                border: `1.5px solid ${P.border}`, background: '#fff', color: P.text,
+                                border: `1.5px solid ${P.border}`, background: (i === 0 && f.field === 'email' && currentUser?.email) ? '#F0F9FF' : '#fff',
+                                color: P.text, cursor: (i === 0 && f.field === 'email' && currentUser?.email) ? 'default' : 'text',
                               }}
                             />
                           </div>
@@ -278,10 +356,7 @@ export default function CreerGroupe() {
                             className="field-input"
                             value={e.filiere}
                             onChange={ev => updateEtudiant(i, 'filiere', ev.target.value)}
-                            style={{
-                              width: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 13,
-                              border: `1.5px solid ${P.border}`, background: '#fff', color: P.text,
-                            }}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 13, border: `1.5px solid ${P.border}`, background: '#fff', color: P.text }}
                           >
                             <option value="">Sélectionner...</option>
                             {filieres.map(f => <option key={f} value={f}>{f}</option>)}
@@ -303,11 +378,7 @@ export default function CreerGroupe() {
                 className="submit-btn"
                 onClick={handleCreerGroupe}
                 disabled={loadingGroupe}
-                style={{
-                  marginTop: 28, width: '100%', background: P.accent, color: '#fff',
-                  border: 'none', borderRadius: 12, padding: '14px', fontSize: 15,
-                  fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer',
-                }}
+                style={{ marginTop: 28, width: '100%', background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer' }}
               >
                 {loadingGroupe ? 'Création en cours...' : 'Créer le groupe et passer aux choix →'}
               </button>
@@ -320,10 +391,9 @@ export default function CreerGroupe() {
           <div>
             <h1 style={{ margin: '0 0 6px', color: P.text, fontSize: 30, fontWeight: 700 }}>Choix de projets</h1>
             <p style={{ margin: '0 0 32px', color: P.muted, fontSize: 15, fontFamily: "'DM Sans', sans-serif" }}>
-              Sélectionnez 3 projets différents par ordre de préférence. Le système d'affectation prendra en compte vos priorités.
+              Sélectionnez 3 projets différents par ordre de préférence.
             </p>
 
-            {/* Priority slots */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {choix.map((c) => (
                 <div key={c.priorite} style={{ background: P.card, borderRadius: 16, border: `1px solid ${P.border}`, padding: '24px 28px' }}>
@@ -331,11 +401,9 @@ export default function CreerGroupe() {
                     <div style={{
                       width: 36, height: 36, borderRadius: 10,
                       background: c.priorite === 1 ? '#7C3AED' : c.priorite === 2 ? '#A78BFA' : '#C4B5FD',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                      fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 700,
-                    }}>
-                      {c.priorite}
-                    </div>
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 700,
+                    }}>{c.priorite}</div>
                     <div>
                       <div style={{ color: P.text, fontSize: 16, fontWeight: 600 }}>
                         {c.priorite === 1 ? '1er choix' : c.priorite === 2 ? '2ème choix' : '3ème choix'}
@@ -345,7 +413,6 @@ export default function CreerGroupe() {
                       </div>
                     </div>
                   </div>
-
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
                     {projets.map(p => {
                       const selectedByOther = choix.filter(ch => ch.priorite !== c.priorite).some(ch => ch.projet_id === p.id)
@@ -373,7 +440,9 @@ export default function CreerGroupe() {
                       )
                     })}
                     {projets.length === 0 && (
-                      <div style={{ color: P.muted, fontSize: 13, fontFamily: "'DM Sans', sans-serif", padding: '12px 0' }}>Aucun projet disponible pour l'instant.</div>
+                      <div style={{ color: P.muted, fontSize: 13, fontFamily: "'DM Sans', sans-serif", padding: '12px 0' }}>
+                        Aucun projet disponible pour l'instant.
+                      </div>
                     )}
                   </div>
                 </div>
@@ -387,22 +456,14 @@ export default function CreerGroupe() {
             )}
 
             <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
-              <button onClick={() => setStep('groupe')} style={{
-                background: P.light, color: P.mid, border: `1px solid ${P.border}`,
-                borderRadius: 12, padding: '13px 24px', fontSize: 14,
-                fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
-              }}>
+              <button onClick={() => setStep('groupe')} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 12, padding: '13px 24px', fontSize: 14, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
                 ← Retour
               </button>
               <button
                 className="submit-btn"
                 onClick={handleSoumettreChoix}
                 disabled={loadingChoix}
-                style={{
-                  flex: 1, background: P.accent, color: '#fff', border: 'none',
-                  borderRadius: 12, padding: '14px', fontSize: 15,
-                  fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer',
-                }}
+                style={{ flex: 1, background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer' }}
               >
                 {loadingChoix ? 'Soumission...' : 'Soumettre mes choix →'}
               </button>
@@ -419,18 +480,10 @@ export default function CreerGroupe() {
               Votre groupe a été créé et vos 3 choix de projets ont été enregistrés. Les résultats seront disponibles après le traitement par le coordinateur.
             </p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
-              <button onClick={() => navigate('/etudiant/resultats')} style={{
-                background: P.accent, color: '#fff', border: 'none',
-                borderRadius: 12, padding: '14px 28px', fontSize: 15,
-                fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer',
-              }}>
-                Voir les résultats
+              <button onClick={() => navigate('/etudiant/resultats')} style={{ background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px 28px', fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer' }}>
+                Voir mes résultats
               </button>
-              <button onClick={() => navigate('/etudiant')} style={{
-                background: P.light, color: P.mid, border: `1px solid ${P.border}`,
-                borderRadius: 12, padding: '14px 28px', fontSize: 15,
-                fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
-              }}>
+              <button onClick={() => navigate('/etudiant')} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 12, padding: '14px 28px', fontSize: 15, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
                 Tableau de bord
               </button>
             </div>
