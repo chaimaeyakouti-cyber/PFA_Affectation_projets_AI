@@ -6,7 +6,7 @@ import sys
 import os
 import hashlib
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'AI_engine'))
-from affectation import affecter_projets
+from affectation import affecter_projets_avec_rapport
 
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -125,46 +125,101 @@ def get_choix(db: Session = Depends(get_db)):
 
 @app.post("/affecter/")
 def lancer_affectation(db: Session = Depends(get_db)):
-    
+    """
+    Lance le moteur IA d'affectation.
+ 
+    Retourne :
+    {
+      "affectations": [...],
+      "rapport": {
+        "equity_score": 0.78,
+        "taux_premier_voeu": 66.7,
+        "conforme_cdc": true,
+        "satisfactions": { "1": 2, "2": 0, "3": 1, ... },
+        ...
+      }
+    }
+    """
     tous_les_choix = db.query(models.Choix).all()
     if not tous_les_choix:
         raise HTTPException(status_code=400, detail="Aucun choix enregistré")
-
-    
+ 
+    # ── Données d'entrée du moteur ──────────────────────────────────────────
+ 
     choix_list = [
         {"groupe_id": c.groupe_id, "projet_id": c.projet_id, "priorite": c.priorite}
         for c in tous_les_choix
     ]
-
-    
-    resultats = affecter_projets(choix_list)
-
-    
+ 
+    # Enrichissement : projets (compétences + encadrant)
+    projets_info = [
+        {
+            "id":                    p.id,
+            "competences_requises":  p.competences_requises,
+            "encadrant_id":          p.encadrant_id,
+        }
+        for p in db.query(models.Projet).all()
+    ]
+ 
+    # Enrichissement : groupes (filières des étudiants)
+    groupes_db = db.query(models.Groupe).all()
+    groupes_info = [
+        {
+            "id": g.id,
+            "etudiants": [
+                {"filiere": e.filiere}
+                for e in g.etudiants
+            ],
+        }
+        for g in groupes_db
+    ]
+ 
+    # ── Exécution du moteur ────────────────────────────────────────────────
+ 
+    resultats, rapport = affecter_projets_avec_rapport(
+        choix_list   = choix_list,
+        projets_info = projets_info,
+        groupes_info = groupes_info,
+    )
+ 
+    # ── Sauvegarde en base ─────────────────────────────────────────────────
+ 
     db.query(models.Affectation).delete()
     db.commit()
-
-    
+ 
     for groupe_id, projet_id in resultats.items():
-        nouvelle_affectation = models.Affectation(
-            groupe_id=groupe_id,
-            projet_id=projet_id,
-            valide="en_attente"
-        )
-        db.add(nouvelle_affectation)
+        db.add(models.Affectation(
+            groupe_id = groupe_id,
+            projet_id = projet_id,
+            valide    = "en_attente",
+        ))
     db.commit()
-
-    
+ 
+    # ── Construction de la réponse ─────────────────────────────────────────
+ 
     reponse = []
     for groupe_id, projet_id in resultats.items():
         groupe = db.query(models.Groupe).filter(models.Groupe.id == groupe_id).first()
         projet = db.query(models.Projet).filter(models.Projet.id == projet_id).first() if projet_id else None
+ 
+        # Rang obtenu dans les préférences de ce groupe
+        rang = next(
+            (c.priorite for c in tous_les_choix
+             if c.groupe_id == groupe_id and c.projet_id == projet_id),
+            None
+        )
+ 
         reponse.append({
-            "groupe": groupe.nom if groupe else f"Groupe {groupe_id}",
+            "groupe":         groupe.nom if groupe else f"Groupe {groupe_id}",
             "projet_affecte": projet.titre if projet else "Aucun projet disponible",
-            "statut": "en_attente"
+            "statut":         "en_attente",
+            "rang_obtenu":    rang,   # 1, 2 ou 3 (ou None si hors préférences)
         })
-
-    return {"affectations": reponse}
+ 
+    return {
+        "affectations": reponse,
+        "rapport":      rapport,     # ← nouveau : rapport d'équité complet
+    }
 
 
 @app.get("/affectations/", response_model=list[schemas.Affectation])
