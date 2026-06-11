@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   getGroupes, getProjets, getEncadrants, getChoix,
   getAffectations, lancerAffectation, validerAffectation, modifierAffectation
@@ -43,7 +42,6 @@ const statutBadge = (valide: string) => {
 
 // ══════════════════════════════════════════════════════════════════
 export default function CoordinateurDashboard() {
-  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('overview')
 
   // Data

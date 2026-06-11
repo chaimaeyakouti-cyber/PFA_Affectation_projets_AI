@@ -283,7 +283,7 @@ export default function EtudiantDashboard() {
               cta: 'Voir',
               step: 3,
             },
-          ].map((card, i) => (
+          ].map((card) => (
             <div
               key={card.title}
               className="nav-card"

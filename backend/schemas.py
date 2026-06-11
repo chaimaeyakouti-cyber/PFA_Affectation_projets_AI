@@ -5,7 +5,9 @@ from typing import Optional
 class EtudiantCreate(BaseModel):
     nom: str
     prenom: str
+    email: Optional[str] = None
     filiere: str
+    utilisateur_id: Optional[int] = None
 
 class Etudiant(EtudiantCreate):
     id: int
@@ -17,10 +19,12 @@ class Etudiant(EtudiantCreate):
 class GroupeCreate(BaseModel):
     nom: str
     etudiants: list[EtudiantCreate]
+    createur_id: Optional[int] = None
 
 class Groupe(BaseModel):
     id: int
     nom: str
+    createur_id: Optional[int] = None
     etudiants: list[Etudiant] = []
     class Config:
         from_attributes = True
@@ -88,5 +92,6 @@ class UserResponse(BaseModel):
     email: str
     role: str
     encadrant_id: Optional[int] = None
+    groupe_id: Optional[int] = None
     class Config:
         from_attributes = True

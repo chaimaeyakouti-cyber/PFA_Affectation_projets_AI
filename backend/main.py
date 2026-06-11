@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import inspect, text
 import models, schemas
 from database import engine, SessionLocal
 import sys
@@ -9,6 +10,30 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'AI_engine'))
 from affectation import affecter_projets_avec_rapport
 
 models.Base.metadata.create_all(bind=engine)
+
+def ensure_missing_columns():
+    inspector = inspect(engine)
+    required_columns = {
+        "groupes": {
+            "createur_id": "INT NULL",
+        },
+        "etudiants": {
+            "email": "VARCHAR(100) NULL",
+            "utilisateur_id": "INT NULL",
+        },
+        "utilisateurs": {
+            "groupe_id": "INT NULL",
+        },
+    }
+
+    with engine.begin() as connection:
+        for table_name, columns in required_columns.items():
+            existing = {column["name"] for column in inspector.get_columns(table_name)}
+            for column_name, column_type in columns.items():
+                if column_name not in existing:
+                    connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"))
+
+ensure_missing_columns()
 app = FastAPI()
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,13 +66,17 @@ def read_root():
 def create_groupe(groupe: schemas.GroupeCreate, db: Session = Depends(get_db)):
     if len(groupe.etudiants) > 3:
         raise HTTPException(status_code=400, detail="Un groupe ne peut pas dépasser 3 étudiants")
-    new_groupe = models.Groupe(nom=groupe.nom)
+    new_groupe = models.Groupe(nom=groupe.nom, createur_id=groupe.createur_id)
     db.add(new_groupe)
     db.commit()
     db.refresh(new_groupe)
     for etudiant_data in groupe.etudiants:
         new_etudiant = models.Etudiant(**etudiant_data.model_dump(), groupe_id=new_groupe.id)
         db.add(new_etudiant)
+    if groupe.createur_id:
+        user = db.query(models.Utilisateur).filter(models.Utilisateur.id == groupe.createur_id).first()
+        if user:
+            user.groupe_id = new_groupe.id
     db.commit()
     db.refresh(new_groupe)
     return new_groupe
@@ -55,6 +84,41 @@ def create_groupe(groupe: schemas.GroupeCreate, db: Session = Depends(get_db)):
 @app.get("/groupes/", response_model=list[schemas.Groupe])
 def get_groupes(db: Session = Depends(get_db)):
     return db.query(models.Groupe).all()
+
+@app.get("/mon-groupe/{user_id}", response_model=schemas.Groupe)
+def get_mon_groupe(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.Utilisateur).filter(models.Utilisateur.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    groupe = None
+    if user.groupe_id:
+        groupe = db.query(models.Groupe).filter(models.Groupe.id == user.groupe_id).first()
+    if not groupe:
+        groupe = db.query(models.Groupe).filter(models.Groupe.createur_id == user_id).first()
+    if not groupe:
+        etudiant = db.query(models.Etudiant).filter(models.Etudiant.utilisateur_id == user_id).first()
+        groupe = etudiant.groupe if etudiant else None
+    if not groupe:
+        raise HTTPException(status_code=404, detail="Aucun groupe associé à cet utilisateur")
+
+    return groupe
+
+@app.put("/users/{user_id}/lier-groupe/{groupe_id}", response_model=schemas.UserResponse)
+def lier_groupe(user_id: int, groupe_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.Utilisateur).filter(models.Utilisateur.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    groupe = db.query(models.Groupe).filter(models.Groupe.id == groupe_id).first()
+    if not groupe:
+        raise HTTPException(status_code=404, detail="Groupe introuvable")
+
+    user.groupe_id = groupe_id
+    if groupe.createur_id is None:
+        groupe.createur_id = user_id
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @app.get("/etudiants/", response_model=list[schemas.Etudiant])

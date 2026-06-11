@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { creerGroupe, getProjets, creerChoix, getMonGroupe, lierGroupe } from '../../services/api'
+import { creerGroupe, getProjets, creerChoix, getMonGroupe } from '../../services/api'
 
 const P = {
   bg: '#F8F7FC',
