@@ -3,15 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { creerGroupe, getProjets, creerChoix, getMonGroupe } from '../../services/api'
 
 const P = {
-  bg: '#F8F7FC',
+  bg: '#F5F8FB',
   card: '#FFFFFF',
-  deep: '#2D1B69',
-  mid: '#6B46C1',
-  light: '#EDE9FE',
-  accent: '#7C3AED',
-  text: '#1C1033',
+  deep: '#071B33',
+  mid: '#0E7490',
+  light: '#E0F2FE',
+  accent: '#0891B2',
+  text: '#102033',
   muted: '#6B7280',
-  border: '#DDD6FE',
+  border: '#D8E3ED',
   error: '#DC2626',
   success: '#059669',
   successBg: '#D1FAE5',
@@ -190,13 +190,12 @@ export default function CreerGroupe() {
 
   // ── Render ───────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: P.bg, fontFamily: "'Crimson Pro', 'Georgia', serif" }}>
+    <div style={{ minHeight: '100vh', background: P.bg, fontFamily: "Inter, system-ui, sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
         * { box-sizing: border-box; }
-        input, select { font-family: 'DM Sans', sans-serif !important; }
+        input, select { font-family: Inter, system-ui, sans-serif !important; }
         .field-input { transition: border-color 0.2s, box-shadow 0.2s; }
-        .field-input:focus { outline: none; border-color: ${P.accent} !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+        .field-input:focus { outline: none; border-color: ${P.accent} !important; box-shadow: 0 0 0 3px rgba(8,145,178,0.14); }
         .remove-btn:hover { background: #FEE2E2 !important; color: ${P.error} !important; }
         .add-btn:hover { background: ${P.light} !important; }
         .submit-btn { transition: background 0.2s, transform 0.15s; }
@@ -210,8 +209,8 @@ export default function CreerGroupe() {
       <header style={{ background: P.deep, borderBottom: `3px solid ${P.accent}`, padding: '0 40px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button onClick={() => navigate('/etudiant')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>← Retour</button>
-            <span style={{ color: '#C4B5FD', fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>Groupe & Choix de projets</span>
+            <button onClick={() => navigate('/etudiant')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>← Retour</button>
+            <span style={{ color: '#A5F3FC', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>Groupe & Choix de projets</span>
           </div>
           {/* Progress */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -220,7 +219,7 @@ export default function CreerGroupe() {
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: step === s ? P.accent : (['groupe', 'choix', 'done'].indexOf(step) > i ? '#10B981' : 'rgba(255,255,255,0.2)'),
-                  color: '#fff', fontSize: 12, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+                  color: '#fff', fontSize: 12, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500,
                 }}>
                   {['groupe', 'choix', 'done'].indexOf(step) > i ? '✓' : i + 1}
                 </div>
@@ -235,7 +234,7 @@ export default function CreerGroupe() {
 
         {/* ─── CHARGEMENT ─── */}
         {loadingCheck && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: P.muted, fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: P.muted, fontFamily: "Inter, system-ui, sans-serif" }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>Vérification de votre compte...
           </div>
         )}
@@ -244,7 +243,7 @@ export default function CreerGroupe() {
         {!loadingCheck && step === 'groupe' && (
           <div>
             <h1 style={{ margin: '0 0 6px', color: P.text, fontSize: 30, fontWeight: 700 }}>Créer votre groupe</h1>
-            <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 15, fontFamily: "'DM Sans', sans-serif" }}>
+            <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 15, fontFamily: "Inter, system-ui, sans-serif" }}>
               Renseignez le nom du groupe et les informations de chaque membre (1 à 3 personnes).
             </p>
 
@@ -253,16 +252,16 @@ export default function CreerGroupe() {
               <div style={{ background: P.warningBg, border: '1px solid #FCD34D', borderRadius: 12, padding: '18px 22px', marginBottom: 28 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <p style={{ margin: '0 0 4px', color: P.warningText, fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>
+                    <p style={{ margin: '0 0 4px', color: P.warningText, fontSize: 15, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600 }}>
                       📁 Vous avez déjà un groupe : <strong>{monGroupe.nom}</strong>
                     </p>
-                    <p style={{ margin: 0, color: '#B45309', fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+                    <p style={{ margin: 0, color: '#B45309', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
                       {monGroupe.etudiants?.length || 0} membre(s) · Voulez-vous soumettre vos choix de projets avec ce groupe ?
                     </p>
                   </div>
                   <button
                     onClick={handleUtiliserMonGroupe}
-                    style={{ background: '#F59E0B', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, whiteSpace: 'nowrap', marginLeft: 16 }}
+                    style={{ background: '#F59E0B', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', cursor: 'pointer', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500, whiteSpace: 'nowrap', marginLeft: 16 }}
                   >
                     Utiliser ce groupe →
                   </button>
@@ -276,7 +275,7 @@ export default function CreerGroupe() {
               {currentUser?.nom && (
                 <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 18 }}>👤</span>
-                  <span style={{ color: '#1E40AF', fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+                  <span style={{ color: '#1E40AF', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
                     Les informations du <strong>premier membre ont été pré-remplies</strong> depuis votre compte <em>({currentUser.email})</em>.
                   </span>
                 </div>
@@ -284,7 +283,7 @@ export default function CreerGroupe() {
 
               {/* Nom du groupe */}
               <div style={{ marginBottom: 28 }}>
-                <label style={{ display: 'block', color: P.text, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, marginBottom: 8 }}>
+                <label style={{ display: 'block', color: P.text, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500, marginBottom: 8 }}>
                   Nom du groupe <span style={{ color: P.error }}>*</span>
                 </label>
                 <input
@@ -299,11 +298,11 @@ export default function CreerGroupe() {
               {/* Étudiants */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <label style={{ color: P.text, fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                  <label style={{ color: P.text, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500 }}>
                     Membres du groupe <span style={{ color: P.muted, fontWeight: 400 }}>({etudiants.length}/3)</span>
                   </label>
                   {etudiants.length < 3 && (
-                    <button className="add-btn" onClick={addEtudiant} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                    <button className="add-btn" onClick={addEtudiant} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500 }}>
                       + Ajouter un membre
                     </button>
                   )}
@@ -314,16 +313,16 @@ export default function CreerGroupe() {
                     <div key={i} style={{ background: P.light, borderRadius: 12, padding: '20px 24px', position: 'relative' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ color: P.mid, fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>Étudiant {i + 1}</span>
+                          <span style={{ color: P.mid, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600 }}>Étudiant {i + 1}</span>
                           {/* ← NOUVEAU : Badge "Vous" pour le premier membre */}
                           {i === 0 && currentUser?.nom && (
-                            <span style={{ background: P.accent, color: '#fff', fontSize: 10, fontFamily: "'DM Sans', sans-serif", padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>
+                            <span style={{ background: P.accent, color: '#fff', fontSize: 10, fontFamily: "Inter, system-ui, sans-serif", padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>
                               Vous
                             </span>
                           )}
                         </div>
                         {etudiants.length > 1 && (
-                          <button className="remove-btn" onClick={() => removeEtudiant(i)} style={{ background: 'transparent', border: 'none', color: P.muted, cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans', sans-serif", borderRadius: 6, padding: '4px 10px' }}>
+                          <button className="remove-btn" onClick={() => removeEtudiant(i)} style={{ background: 'transparent', border: 'none', color: P.muted, cursor: 'pointer', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", borderRadius: 6, padding: '4px 10px' }}>
                             ✕ Retirer
                           </button>
                         )}
@@ -334,7 +333,7 @@ export default function CreerGroupe() {
                           { field: 'email' as keyof Etudiant, label: 'Email INPT', placeholder: 'nom@inpt.ac.ma' },
                         ]).map(f => (
                           <div key={f.field}>
-                            <label style={{ display: 'block', color: P.text, fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}>{f.label}</label>
+                            <label style={{ display: 'block', color: P.text, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif", marginBottom: 6 }}>{f.label}</label>
                             <input
                               className="field-input"
                               value={e[f.field]}
@@ -351,7 +350,7 @@ export default function CreerGroupe() {
                           </div>
                         ))}
                         <div>
-                          <label style={{ display: 'block', color: P.text, fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginBottom: 6 }}>Filière</label>
+                          <label style={{ display: 'block', color: P.text, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif", marginBottom: 6 }}>Filière</label>
                           <select
                             className="field-input"
                             value={e.filiere}
@@ -369,7 +368,7 @@ export default function CreerGroupe() {
               </div>
 
               {errGroupe && (
-                <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 8, background: '#FEF2F2', border: '1px solid #FECACA', color: P.error, fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+                <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 8, background: '#FEF2F2', border: '1px solid #FECACA', color: P.error, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
                   ⚠️ {errGroupe}
                 </div>
               )}
@@ -378,7 +377,7 @@ export default function CreerGroupe() {
                 className="submit-btn"
                 onClick={handleCreerGroupe}
                 disabled={loadingGroupe}
-                style={{ marginTop: 28, width: '100%', background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer' }}
+                style={{ marginTop: 28, width: '100%', background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500, cursor: 'pointer' }}
               >
                 {loadingGroupe ? 'Création en cours...' : 'Créer le groupe et passer aux choix →'}
               </button>
@@ -390,7 +389,7 @@ export default function CreerGroupe() {
         {step === 'choix' && (
           <div>
             <h1 style={{ margin: '0 0 6px', color: P.text, fontSize: 30, fontWeight: 700 }}>Choix de projets</h1>
-            <p style={{ margin: '0 0 32px', color: P.muted, fontSize: 15, fontFamily: "'DM Sans', sans-serif" }}>
+            <p style={{ margin: '0 0 32px', color: P.muted, fontSize: 15, fontFamily: "Inter, system-ui, sans-serif" }}>
               Sélectionnez 3 projets différents par ordre de préférence.
             </p>
 
@@ -400,15 +399,15 @@ export default function CreerGroupe() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: 10,
-                      background: c.priorite === 1 ? '#7C3AED' : c.priorite === 2 ? '#A78BFA' : '#C4B5FD',
+                      background: c.priorite === 1 ? '#0891B2' : c.priorite === 2 ? '#22D3EE' : '#A5F3FC',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#fff', fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 700,
+                      color: '#fff', fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 700,
                     }}>{c.priorite}</div>
                     <div>
                       <div style={{ color: P.text, fontSize: 16, fontWeight: 600 }}>
                         {c.priorite === 1 ? '1er choix' : c.priorite === 2 ? '2ème choix' : '3ème choix'}
                       </div>
-                      <div style={{ color: P.muted, fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>
+                      <div style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>
                         {c.priorite === 1 ? 'Votre projet préféré' : c.priorite === 2 ? 'Deuxième préférence' : 'Alternative'}
                       </div>
                     </div>
@@ -430,17 +429,17 @@ export default function CreerGroupe() {
                             cursor: selectedByOther ? 'not-allowed' : 'pointer',
                           }}
                         >
-                          <div style={{ color: P.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: isSelected ? 600 : 400, marginBottom: 4 }}>
+                          <div style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", fontWeight: isSelected ? 600 : 400, marginBottom: 4 }}>
                             {isSelected && <span style={{ color: P.accent }}>✓ </span>}{p.titre}
                           </div>
-                          <div style={{ color: P.muted, fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>
+                          <div style={{ color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif" }}>
                             {p.description?.slice(0, 60)}{p.description?.length > 60 ? '...' : ''}
                           </div>
                         </div>
                       )
                     })}
                     {projets.length === 0 && (
-                      <div style={{ color: P.muted, fontSize: 13, fontFamily: "'DM Sans', sans-serif", padding: '12px 0' }}>
+                      <div style={{ color: P.muted, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", padding: '12px 0' }}>
                         Aucun projet disponible pour l'instant.
                       </div>
                     )}
@@ -450,20 +449,20 @@ export default function CreerGroupe() {
             </div>
 
             {errChoix && (
-              <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 8, background: '#FEF2F2', border: '1px solid #FECACA', color: P.error, fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+              <div style={{ marginTop: 20, padding: '12px 16px', borderRadius: 8, background: '#FEF2F2', border: '1px solid #FECACA', color: P.error, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
                 ⚠️ {errChoix}
               </div>
             )}
 
             <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
-              <button onClick={() => setStep('groupe')} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 12, padding: '13px 24px', fontSize: 14, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
+              <button onClick={() => setStep('groupe')} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 12, padding: '13px 24px', fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", cursor: 'pointer' }}>
                 ← Retour
               </button>
               <button
                 className="submit-btn"
                 onClick={handleSoumettreChoix}
                 disabled={loadingChoix}
-                style={{ flex: 1, background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer' }}
+                style={{ flex: 1, background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500, cursor: 'pointer' }}
               >
                 {loadingChoix ? 'Soumission...' : 'Soumettre mes choix →'}
               </button>
@@ -476,14 +475,14 @@ export default function CreerGroupe() {
           <div style={{ textAlign: 'center', padding: '80px 20px' }}>
             <div style={{ fontSize: 64, marginBottom: 24 }}>🎉</div>
             <h1 style={{ margin: '0 0 12px', color: P.text, fontSize: 32, fontWeight: 700 }}>Dossier soumis avec succès !</h1>
-            <p style={{ margin: '0 0 40px', color: P.muted, fontSize: 16, fontFamily: "'DM Sans', sans-serif", maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
+            <p style={{ margin: '0 0 40px', color: P.muted, fontSize: 16, fontFamily: "Inter, system-ui, sans-serif", maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
               Votre groupe a été créé et vos 3 choix de projets ont été enregistrés. Les résultats seront disponibles après le traitement par le coordinateur.
             </p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
-              <button onClick={() => navigate('/etudiant/resultats')} style={{ background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px 28px', fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: 'pointer' }}>
+              <button onClick={() => navigate('/etudiant/resultats')} style={{ background: P.accent, color: '#fff', border: 'none', borderRadius: 12, padding: '14px 28px', fontSize: 15, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500, cursor: 'pointer' }}>
                 Voir mes résultats
               </button>
-              <button onClick={() => navigate('/etudiant')} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 12, padding: '14px 28px', fontSize: 15, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
+              <button onClick={() => navigate('/etudiant')} style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 12, padding: '14px 28px', fontSize: 15, fontFamily: "Inter, system-ui, sans-serif", cursor: 'pointer' }}>
                 Tableau de bord
               </button>
             </div>

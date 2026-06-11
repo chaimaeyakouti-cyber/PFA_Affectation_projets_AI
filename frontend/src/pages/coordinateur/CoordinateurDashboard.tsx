@@ -6,15 +6,15 @@ import {
 
 // ── Design tokens ──────────────────────────────────────────────
 const P = {
-  bg: '#F8F7FC',
+  bg: '#F5F8FB',
   card: '#FFFFFF',
-  deep: '#2D1B69',
-  mid: '#6B46C1',
-  light: '#EDE9FE',
-  accent: '#7C3AED',
-  text: '#1C1033',
+  deep: '#071B33',
+  mid: '#0E7490',
+  light: '#E0F2FE',
+  accent: '#0891B2',
+  text: '#102033',
   muted: '#6B7280',
-  border: '#DDD6FE',
+  border: '#D8E3ED',
   success: '#059669',
   successBg: '#D1FAE5',
   warning: '#D97706',
@@ -144,20 +144,19 @@ export default function CoordinateurDashboard() {
 
   // ════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: '100vh', background: P.bg, fontFamily: "'Crimson Pro', Georgia, serif" }}>
+    <div style={{ minHeight: '100vh', background: P.bg, fontFamily: "Inter, system-ui, sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
         * { box-sizing: border-box; }
-        input, select, button { font-family: 'DM Sans', sans-serif !important; }
+        input, select, button { font-family: Inter, system-ui, sans-serif !important; }
         .tab-btn { transition: all 0.2s; cursor: pointer; }
         .tab-btn:hover { background: rgba(255,255,255,0.15) !important; }
         .action-btn { transition: all 0.18s; cursor: pointer; }
         .action-btn:hover:not(:disabled) { filter: brightness(0.9); transform: translateY(-1px); }
         .action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-        .stat-card:hover { box-shadow: 0 6px 24px rgba(107,70,193,0.13); transform: translateY(-2px); }
+        .stat-card:hover { box-shadow: 0 6px 24px rgba(8,145,178,0.13); transform: translateY(-2px); }
         .stat-card { transition: all 0.2s; }
         .row-hover:hover { background: #F5F3FF !important; }
-        .field-input:focus { outline: none; border-color: ${P.accent} !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+        .field-input:focus { outline: none; border-color: ${P.accent} !important; box-shadow: 0 0 0 3px rgba(8,145,178,0.14); }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -167,24 +166,24 @@ export default function CoordinateurDashboard() {
             <div style={{ width: 38, height: 38, borderRadius: 8, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎓</div>
             <div>
               <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>PFA Affectation</div>
-              <div style={{ color: '#C4B5FD', fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 300 }}>INPT · Espace Coordinateur</div>
+              <div style={{ color: '#A5F3FC', fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 300 }}>INPT · Espace Coordinateur</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button onClick={loadAll} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#C4B5FD', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12 }}>
+            <button onClick={loadAll} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#A5F3FC', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12 }}>
               ↻ Actualiser
             </button>
             <div style={{ width: 34, height: 34, borderRadius: '50%', background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14 }}>C</div>
-            <span style={{ color: '#C4B5FD', fontSize: 13 }}>Coordinateur</span>
+            <span style={{ color: '#A5F3FC', fontSize: 13 }}>Coordinateur</span>
           </div>
         </div>
       </header>
 
       {/* ── HERO ── */}
-      <div style={{ background: `linear-gradient(135deg, ${P.deep} 0%, #4A2C8C 55%, ${P.mid} 100%)`, padding: '36px 40px 32px' }}>
+      <div style={{ background: `linear-gradient(135deg, ${P.deep} 0%, #0B2A45 55%, ${P.mid} 100%)`, padding: '36px 40px 32px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <h1 style={{ margin: '0 0 6px', color: '#fff', fontSize: 30, fontWeight: 700 }}>Tableau de bord Coordinateur</h1>
-          <p style={{ margin: '0 0 28px', color: '#C4B5FD', fontSize: 14, fontFamily: "'DM Sans'", fontWeight: 300 }}>
+          <p style={{ margin: '0 0 28px', color: '#A5F3FC', fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 300 }}>
             Supervisez les groupes, lancez l'algorithme d'affectation et gérez les résultats.
           </p>
           {/* Quick stats */}
@@ -199,7 +198,7 @@ export default function CoordinateurDashboard() {
               ].map(s => (
                 <div key={s.label} style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 20px', minWidth: 100 }}>
                   <div style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>{s.val}</div>
-                  <div style={{ color: '#C4B5FD', fontSize: 11, fontFamily: "'DM Sans'" }}>{s.icon} {s.label}</div>
+                  <div style={{ color: '#A5F3FC', fontSize: 11, fontFamily: "Inter, system-ui, sans-serif" }}>{s.icon} {s.label}</div>
                 </div>
               ))}
             </div>
@@ -219,7 +218,7 @@ export default function CoordinateurDashboard() {
                 background: tab === t.id ? 'rgba(255,255,255,0.15)' : 'transparent',
                 border: 'none',
                 borderBottom: tab === t.id ? `2px solid ${P.accent}` : '2px solid transparent',
-                color: tab === t.id ? '#fff' : '#C4B5FD',
+                color: tab === t.id ? '#fff' : '#A5F3FC',
                 padding: '14px 20px',
                 fontSize: 13,
                 fontWeight: tab === t.id ? 500 : 400,
@@ -234,7 +233,7 @@ export default function CoordinateurDashboard() {
       {/* ── CONTENT ── */}
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 40px' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: P.muted, fontFamily: "'DM Sans'" }}>
+          <div style={{ textAlign: 'center', padding: '80px 0', color: P.muted, fontFamily: "Inter, system-ui, sans-serif" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>Chargement des données...
           </div>
         ) : (
@@ -257,7 +256,7 @@ export default function CoordinateurDashboard() {
                         <span style={{ background: c.bg, color: c.color, fontSize: 22, fontWeight: 700, padding: '4px 14px', borderRadius: 10 }}>{c.val}</span>
                       </div>
                       <div style={{ color: P.text, fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{c.title}</div>
-                      <div style={{ color: P.muted, fontSize: 12, fontFamily: "'DM Sans'", lineHeight: 1.5 }}>{c.desc}</div>
+                      <div style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif", lineHeight: 1.5 }}>{c.desc}</div>
                     </div>
                   ))}
                 </div>
@@ -266,7 +265,7 @@ export default function CoordinateurDashboard() {
                 <div style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, padding: '24px 28px', marginBottom: 24 }}>
                   <h3 style={{ margin: '0 0 20px', color: P.text, fontSize: 17, fontWeight: 600 }}>Projets par encadrant</h3>
                   {encadrants.length === 0 ? (
-                    <p style={{ color: P.muted, fontFamily: "'DM Sans'", fontSize: 13 }}>Aucun encadrant enregistré.</p>
+                    <p style={{ color: P.muted, fontFamily: "Inter, system-ui, sans-serif", fontSize: 13 }}>Aucun encadrant enregistré.</p>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
                       {encadrants.map(enc => {
@@ -279,14 +278,14 @@ export default function CoordinateurDashboard() {
                               </div>
                               <div>
                                 <div style={{ color: P.text, fontSize: 14, fontWeight: 600 }}>{enc.nom}</div>
-                                <div style={{ color: P.muted, fontSize: 11, fontFamily: "'DM Sans'" }}>{enc.specialite}</div>
+                                <div style={{ color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif" }}>{enc.specialite}</div>
                               </div>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {lesProjets.length === 0 ? (
-                                <span style={{ color: P.muted, fontSize: 12, fontFamily: "'DM Sans'" }}>Aucun projet proposé</span>
+                                <span style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>Aucun projet proposé</span>
                               ) : lesProjets.map(p => (
-                                <div key={p.id} style={{ background: '#fff', borderRadius: 7, padding: '8px 12px', fontSize: 13, color: P.text, fontFamily: "'DM Sans'" }}>
+                                <div key={p.id} style={{ background: '#fff', borderRadius: 7, padding: '8px 12px', fontSize: 13, color: P.text, fontFamily: "Inter, system-ui, sans-serif" }}>
                                   📁 {p.titre}
                                 </div>
                               ))}
@@ -302,7 +301,7 @@ export default function CoordinateurDashboard() {
                 <div style={{ background: P.light, borderRadius: 14, border: `1px solid ${P.border}`, padding: '20px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ color: P.text, fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Prêt à lancer l'affectation ?</div>
-                    <div style={{ color: P.muted, fontSize: 13, fontFamily: "'DM Sans'" }}>
+                    <div style={{ color: P.muted, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
                       {stats.sansChoix > 0 ? `⚠️ ${stats.sansChoix} groupe(s) n'ont pas encore soumis leurs choix.` : '✅ Tous les groupes ont soumis leurs choix.'}
                     </div>
                   </div>
@@ -320,10 +319,10 @@ export default function CoordinateurDashboard() {
             {tab === 'groupes' && (
               <div>
                 <h2 style={{ margin: '0 0 8px', color: P.text, fontSize: 24, fontWeight: 600 }}>Groupes & Choix de projets</h2>
-                <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "'DM Sans'" }}>{groupes.length} groupe(s) enregistré(s)</p>
+                <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif" }}>{groupes.length} groupe(s) enregistré(s)</p>
 
                 {groupes.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '60px 0', color: P.muted, fontFamily: "'DM Sans'" }}>
+                  <div style={{ textAlign: 'center', padding: '60px 0', color: P.muted, fontFamily: "Inter, system-ui, sans-serif" }}>
                     <div style={{ fontSize: 48, marginBottom: 14 }}>📭</div>
                     Aucun groupe enregistré pour le moment.
                   </div>
@@ -339,13 +338,13 @@ export default function CoordinateurDashboard() {
                               <div style={{ width: 40, height: 40, borderRadius: 10, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 16 }}>👥</div>
                               <div>
                                 <div style={{ color: P.text, fontSize: 16, fontWeight: 600 }}>{g.nom}</div>
-                                <div style={{ color: P.muted, fontSize: 12, fontFamily: "'DM Sans'" }}>{g.etudiants?.length || 0} membre(s)</div>
+                                <div style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>{g.etudiants?.length || 0} membre(s)</div>
                               </div>
                             </div>
                             <span style={{
                               background: lesChoix.length >= 3 ? P.successBg : P.warningBg,
                               color: lesChoix.length >= 3 ? P.success : P.warning,
-                              fontSize: 12, fontFamily: "'DM Sans'", fontWeight: 600,
+                              fontSize: 12, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600,
                               padding: '4px 12px', borderRadius: 20,
                             }}>
                               {lesChoix.length >= 3 ? '✓ Choix complets' : `${lesChoix.length}/3 choix`}
@@ -355,7 +354,7 @@ export default function CoordinateurDashboard() {
                           <div style={{ padding: '20px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                             {/* Membres */}
                             <div>
-                              <p style={{ margin: '0 0 10px', color: P.muted, fontSize: 11, fontFamily: "'DM Sans'", textTransform: 'uppercase', letterSpacing: 1 }}>Membres</p>
+                              <p style={{ margin: '0 0 10px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Membres</p>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {g.etudiants?.map((e, i) => (
                                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -363,8 +362,8 @@ export default function CoordinateurDashboard() {
                                       {e.nom?.[0]?.toUpperCase()}
                                     </div>
                                     <div>
-                                      <div style={{ color: P.text, fontSize: 13, fontFamily: "'DM Sans'" }}>{e.nom}</div>
-                                      <div style={{ color: P.muted, fontSize: 11, fontFamily: "'DM Sans'" }}>{e.filiere} · {e.email}</div>
+                                      <div style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>{e.nom}</div>
+                                      <div style={{ color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif" }}>{e.filiere} · {e.email}</div>
                                     </div>
                                   </div>
                                 ))}
@@ -373,9 +372,9 @@ export default function CoordinateurDashboard() {
 
                             {/* Choix */}
                             <div>
-                              <p style={{ margin: '0 0 10px', color: P.muted, fontSize: 11, fontFamily: "'DM Sans'", textTransform: 'uppercase', letterSpacing: 1 }}>Choix de projets</p>
+                              <p style={{ margin: '0 0 10px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Choix de projets</p>
                               {lesChoix.length === 0 ? (
-                                <div style={{ color: P.warning, fontSize: 13, fontFamily: "'DM Sans'", background: P.warningBg, borderRadius: 8, padding: '10px 14px' }}>⚠️ Aucun choix soumis</div>
+                                <div style={{ color: P.warning, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", background: P.warningBg, borderRadius: 8, padding: '10px 14px' }}>⚠️ Aucun choix soumis</div>
                               ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                   {lesChoix.map(c => {
@@ -384,11 +383,11 @@ export default function CoordinateurDashboard() {
                                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                         <div style={{
                                           width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                                          background: c.priorite === 1 ? P.accent : c.priorite === 2 ? '#A78BFA' : '#C4B5FD',
+                                          background: c.priorite === 1 ? P.accent : c.priorite === 2 ? '#22D3EE' : '#A5F3FC',
                                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                                           color: '#fff', fontSize: 11, fontWeight: 700,
                                         }}>{c.priorite}</div>
-                                        <div style={{ color: P.text, fontSize: 13, fontFamily: "'DM Sans'" }}>{p?.titre || `Projet #${c.projet_id}`}</div>
+                                        <div style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>{p?.titre || `Projet #${c.projet_id}`}</div>
                                       </div>
                                     )
                                   })}
@@ -408,7 +407,7 @@ export default function CoordinateurDashboard() {
             {tab === 'affectation' && (
               <div>
                 <h2 style={{ margin: '0 0 8px', color: P.text, fontSize: 24, fontWeight: 600 }}>Lancer l'affectation</h2>
-                <p style={{ margin: '0 0 32px', color: P.muted, fontSize: 14, fontFamily: "'DM Sans'" }}>
+                <p style={{ margin: '0 0 32px', color: P.muted, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif" }}>
                   L'algorithme affecte automatiquement chaque groupe à un projet selon ses préférences et la disponibilité des projets.
                 </p>
 
@@ -426,7 +425,7 @@ export default function CoordinateurDashboard() {
                         <span style={{ fontSize: 18 }}>{item.ok ? '✅' : '⚠️'}</span>
                         <div>
                           <div style={{ color: item.ok ? P.success : P.warning, fontSize: 14, fontWeight: 600 }}>{item.label}</div>
-                          <div style={{ color: item.ok ? '#047857' : '#92400E', fontSize: 12, fontFamily: "'DM Sans'" }}>{item.detail}</div>
+                          <div style={{ color: item.ok ? '#047857' : '#92400E', fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>{item.detail}</div>
                         </div>
                       </div>
                     ))}
@@ -437,12 +436,12 @@ export default function CoordinateurDashboard() {
                 <div style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, padding: '28px 32px', textAlign: 'center', marginBottom: 24 }}>
                   <div style={{ fontSize: 48, marginBottom: 14 }}>⚙️</div>
                   <h3 style={{ margin: '0 0 8px', color: P.text, fontSize: 20, fontWeight: 600 }}>Algorithme d'affectation</h3>
-                  <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "'DM Sans'", maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
+                  <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
                     Le lancement remplace les affectations existantes. Cette opération est réversible via la gestion manuelle.
                   </p>
 
                   {launchError && (
-                    <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.errorBg, color: P.error, fontSize: 13, fontFamily: "'DM Sans'" }}>
+                    <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.errorBg, color: P.error, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
                       ⚠️ {launchError}
                     </div>
                   )}
@@ -468,7 +467,7 @@ export default function CoordinateurDashboard() {
                       <span style={{ fontSize: 22 }}>🎉</span>
                       <div>
                         <div style={{ color: P.success, fontSize: 15, fontWeight: 600 }}>Affectation terminée avec succès !</div>
-                        <div style={{ color: '#047857', fontSize: 13, fontFamily: "'DM Sans'" }}>{launchResult.length} groupe(s) affecté(s). Passez à l'onglet "Gérer" pour valider.</div>
+                        <div style={{ color: '#047857', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>{launchResult.length} groupe(s) affecté(s). Passez à l'onglet "Gérer" pour valider.</div>
                       </div>
                     </div>
                     <div style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, overflow: 'hidden' }}>
@@ -479,17 +478,17 @@ export default function CoordinateurDashboard() {
                         <thead>
                           <tr style={{ background: P.light }}>
                             {['Groupe', 'Projet affecté', 'Statut'].map(h => (
-                              <th key={h} style={{ padding: '12px 24px', textAlign: 'left', color: P.muted, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>{h}</th>
+                              <th key={h} style={{ padding: '12px 24px', textAlign: 'left', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {launchResult.map((r, i) => (
                             <tr key={i} className="row-hover" style={{ borderBottom: `1px solid ${P.border}` }}>
-                              <td style={{ padding: '14px 24px', color: P.text, fontSize: 14, fontFamily: "'DM Sans'", fontWeight: 500 }}>{r.groupe}</td>
-                              <td style={{ padding: '14px 24px', color: P.text, fontSize: 14, fontFamily: "'DM Sans'" }}>{r.projet_affecte}</td>
+                              <td style={{ padding: '14px 24px', color: P.text, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500 }}>{r.groupe}</td>
+                              <td style={{ padding: '14px 24px', color: P.text, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif" }}>{r.projet_affecte}</td>
                               <td style={{ padding: '14px 24px' }}>
-                                <span style={{ background: P.warningBg, color: P.warning, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>⏳ En attente</span>
+                                <span style={{ background: P.warningBg, color: P.warning, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>⏳ En attente</span>
                               </td>
                             </tr>
                           ))}
@@ -505,26 +504,26 @@ export default function CoordinateurDashboard() {
             {tab === 'gestion' && (
               <div>
                 <h2 style={{ margin: '0 0 8px', color: P.text, fontSize: 24, fontWeight: 600 }}>Gérer les affectations</h2>
-                <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "'DM Sans'" }}>
+                <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif" }}>
                   Validez ou modifiez manuellement chaque affectation.
                 </p>
 
                 {/* Messages */}
                 {actionMsg && (
-                  <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.successBg, color: P.success, fontSize: 13, fontFamily: "'DM Sans'", display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.successBg, color: P.success, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", display: 'flex', justifyContent: 'space-between' }}>
                     ✅ {actionMsg}
                     <button onClick={() => setActionMsg('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: P.success, fontSize: 16 }}>×</button>
                   </div>
                 )}
                 {actionError && (
-                  <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.errorBg, color: P.error, fontSize: 13, fontFamily: "'DM Sans'", display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.errorBg, color: P.error, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", display: 'flex', justifyContent: 'space-between' }}>
                     ⚠️ {actionError}
                     <button onClick={() => setActionError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: P.error, fontSize: 16 }}>×</button>
                   </div>
                 )}
 
                 {affectations.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '70px 0', color: P.muted, fontFamily: "'DM Sans'" }}>
+                  <div style={{ textAlign: 'center', padding: '70px 0', color: P.muted, fontFamily: "Inter, system-ui, sans-serif" }}>
                     <div style={{ fontSize: 48, marginBottom: 14 }}>📭</div>
                     <div style={{ fontSize: 16, marginBottom: 8 }}>Aucune affectation générée</div>
                     <div style={{ fontSize: 13, marginBottom: 24 }}>Lancez d'abord l'algorithme depuis l'onglet "Lancer l'affectation".</div>
@@ -546,11 +545,11 @@ export default function CoordinateurDashboard() {
                           {/* Card top */}
                           <div style={{ background: P.light, padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ color: P.muted, fontSize: 12, fontFamily: "'DM Sans'" }}>#{aff.id}</span>
+                              <span style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>#{aff.id}</span>
                               <span style={{ color: P.text, fontSize: 15, fontWeight: 600 }}>{groupe?.nom || `Groupe #${aff.groupe_id}`}</span>
-                              <span style={{ color: P.muted, fontSize: 12, fontFamily: "'DM Sans'" }}>· {groupe?.etudiants?.length || 0} membre(s)</span>
+                              <span style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>· {groupe?.etudiants?.length || 0} membre(s)</span>
                             </div>
-                            <span style={{ background: st.bg, color: st.color, fontSize: 11, fontFamily: "'DM Sans'", fontWeight: 600, padding: '4px 12px', borderRadius: 20 }}>
+                            <span style={{ background: st.bg, color: st.color, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600, padding: '4px 12px', borderRadius: 20 }}>
                               {st.label}
                             </span>
                           </div>
@@ -559,31 +558,31 @@ export default function CoordinateurDashboard() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 20 }}>
                               {/* Projet affecté */}
                               <div>
-                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "'DM Sans'", textTransform: 'uppercase', letterSpacing: 1 }}>Projet affecté</p>
+                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Projet affecté</p>
                                 <div style={{ background: projet ? P.light : P.errorBg, borderRadius: 8, padding: '10px 14px', borderLeft: `3px solid ${projet ? P.accent : P.error}` }}>
-                                  <div style={{ color: P.text, fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans'" }}>{projet?.titre || 'Aucun projet'}</div>
+                                  <div style={{ color: P.text, fontSize: 13, fontWeight: 600, fontFamily: "Inter, system-ui, sans-serif" }}>{projet?.titre || 'Aucun projet'}</div>
                                 </div>
                               </div>
 
                               {/* Encadrant */}
                               <div>
-                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "'DM Sans'", textTransform: 'uppercase', letterSpacing: 1 }}>Encadrant</p>
-                                <div style={{ color: P.text, fontSize: 13, fontFamily: "'DM Sans'" }}>
+                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Encadrant</p>
+                                <div style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
                                   {projet ? (getEncadrant(projet.encadrant_id)?.nom || '—') : '—'}
                                 </div>
                               </div>
 
                               {/* Choix correspondant */}
                               <div>
-                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "'DM Sans'", textTransform: 'uppercase', letterSpacing: 1 }}>Rang du choix obtenu</p>
+                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Rang du choix obtenu</p>
                                 {(() => {
                                   const rank = lesChoix.findIndex(c => c.projet_id === aff.projet_id)
-                                  if (rank === -1) return <span style={{ color: P.warning, fontSize: 13, fontFamily: "'DM Sans'" }}>⚠️ Hors préférences</span>
-                                  const colors = ['#7C3AED', '#A78BFA', '#C4B5FD']
+                                  if (rank === -1) return <span style={{ color: P.warning, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>⚠️ Hors préférences</span>
+                                  const colors = ['#0891B2', '#22D3EE', '#A5F3FC']
                                   return (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                       <div style={{ width: 28, height: 28, borderRadius: '50%', background: colors[rank], display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700 }}>{rank + 1}</div>
-                                      <span style={{ color: P.text, fontSize: 13, fontFamily: "'DM Sans'" }}>{rank === 0 ? '1er choix ✓' : rank === 1 ? '2ème choix' : '3ème choix'}</span>
+                                      <span style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>{rank === 0 ? '1er choix ✓' : rank === 1 ? '2ème choix' : '3ème choix'}</span>
                                     </div>
                                   )
                                 })()}
@@ -593,7 +592,7 @@ export default function CoordinateurDashboard() {
                             {/* Modifier panel */}
                             {estModifie && (
                               <div style={{ background: '#F5F3FF', borderRadius: 10, padding: '16px 20px', marginBottom: 16, border: `1px solid ${P.border}` }}>
-                                <p style={{ margin: '0 0 10px', color: P.text, fontSize: 13, fontFamily: "'DM Sans'", fontWeight: 500 }}>Choisir un nouveau projet :</p>
+                                <p style={{ margin: '0 0 10px', color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500 }}>Choisir un nouveau projet :</p>
                                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                   <select
                                     className="field-input"
