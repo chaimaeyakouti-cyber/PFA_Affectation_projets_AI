@@ -44,30 +44,36 @@ function ProposerProjet() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
 
       {/* Navbar */}
-      <nav className="bg-purple-900 text-white px-8 py-4 flex items-center justify-between">
+      <nav className="bg-[#071B33] text-white px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="bg-purple-700 p-2 rounded-lg text-xl">👨‍🏫</div>
+          <div className="bg-[#0891B2] p-2 rounded-lg text-xl">👨‍🏫</div>
           <div>
             <p className="font-bold text-lg">PFA Affectation</p>
-            <p className="text-purple-300 text-xs">INPT · Plateforme de gestion de projets</p>
+            <p className="text-cyan-100 text-xs">INPT · Plateforme de gestion de projets</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-purple-700 px-4 py-2 rounded-full">
-          <div className="bg-purple-500 rounded-full w-8 h-8 flex items-center justify-center font-bold">E</div>
+        <div className="flex items-center gap-2 bg-[#0891B2] px-4 py-2 rounded-full">
+          <div className="bg-[#06B6D4] rounded-full w-8 h-8 flex items-center justify-center font-bold">E</div>
           <span className="text-sm">{nomEncadrant || 'Encadrant'}</span>
         </div>
+        <button
+          onClick={() => { localStorage.removeItem('user'); localStorage.removeItem('access_token'); navigate('/') }}
+          className="bg-white text-[#071B33] px-4 py-2 rounded-lg text-sm font-semibold"
+        >
+          Déconnexion
+        </button>
       </nav>
 
       {/* Hero */}
-      <div className="bg-gradient-to-r from-purple-900 to-purple-600 text-white px-8 py-10">
+      <div className="bg-gradient-to-r from-[#071B33] to-[#0E7490] text-white px-8 py-10">
         <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full uppercase tracking-widest">
           Étape 1
         </span>
         <h1 className="text-3xl font-bold mt-4 mb-2">Proposer un projet</h1>
-        <p className="text-purple-200">Soumettez un sujet avec ses détails et compétences requises.</p>
+        <p className="text-cyan-100">Soumettez un sujet avec ses détails et compétences requises.</p>
       </div>
 
       {/* Formulaire */}
@@ -75,7 +81,7 @@ function ProposerProjet() {
         <div className="bg-white rounded-2xl shadow p-8 border border-gray-100">
 
           {/* Info encadrant */}
-          <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 mb-6 text-purple-700 text-sm">
+          <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-4 py-3 mb-6 text-cyan-800 text-sm">
             📋 Vous proposez ce projet en tant que <strong>{nomEncadrant}</strong>
           </div>
 
@@ -98,7 +104,7 @@ function ProposerProjet() {
               placeholder="Ex: Application de gestion RH"
               value={form.titre}
               onChange={e => setForm({ ...form, titre: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-400"
             />
           </div>
 
@@ -110,7 +116,7 @@ function ProposerProjet() {
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
               rows={4}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 resize-none"
             />
           </div>
 
@@ -122,13 +128,13 @@ function ProposerProjet() {
               placeholder="Ex: Python, React, SQL"
               value={form.competences_requises}
               onChange={e => setForm({ ...form, competences_requises: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-400"
             />
           </div>
 
           <button
             onClick={handleSubmit}
-            className="w-full bg-purple-700 text-white py-3 rounded-xl font-semibold hover:bg-purple-800 transition-all"
+            className="w-full bg-[#0891B2] text-white py-3 rounded-xl font-semibold hover:bg-[#0B2A45] transition-all"
           >
             Soumettre le projet →
           </button>

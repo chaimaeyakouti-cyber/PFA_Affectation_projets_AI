@@ -47,30 +47,36 @@ function ValiderAffectations() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
 
       {/* Navbar */}
-      <nav className="bg-purple-900 text-white px-8 py-4 flex items-center justify-between">
+      <nav className="bg-[#071B33] text-white px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="bg-purple-700 p-2 rounded-lg text-xl">👨‍🏫</div>
+          <div className="bg-[#0891B2] p-2 rounded-lg text-xl">👨‍🏫</div>
           <div>
             <p className="font-bold text-lg">PFA Affectation</p>
-            <p className="text-purple-300 text-xs">INPT · Plateforme de gestion de projets</p>
+            <p className="text-cyan-100 text-xs">INPT · Plateforme de gestion de projets</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-purple-700 px-4 py-2 rounded-full">
-          <div className="bg-purple-500 rounded-full w-8 h-8 flex items-center justify-center font-bold">E</div>
+        <div className="flex items-center gap-2 bg-[#0891B2] px-4 py-2 rounded-full">
+          <div className="bg-[#06B6D4] rounded-full w-8 h-8 flex items-center justify-center font-bold">E</div>
           <span className="text-sm">Espace Encadrant</span>
         </div>
+        <button
+          onClick={() => { localStorage.removeItem('user'); localStorage.removeItem('access_token'); navigate('/') }}
+          className="bg-white text-[#071B33] px-4 py-2 rounded-lg text-sm font-semibold"
+        >
+          Déconnexion
+        </button>
       </nav>
 
       {/* Hero */}
-      <div className="bg-gradient-to-r from-purple-900 to-purple-600 text-white px-8 py-10">
+      <div className="bg-gradient-to-r from-[#071B33] to-[#0E7490] text-white px-8 py-10">
         <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full uppercase tracking-widest">
           Étape 2
         </span>
         <h1 className="text-3xl font-bold mt-4 mb-2">Valider les affectations</h1>
-        <p className="text-purple-200">Consultez, validez ou modifiez les résultats du moteur IA.</p>
+        <p className="text-cyan-100">Consultez, validez ou modifiez les résultats du moteur IA.</p>
       </div>
 
       {/* Contenu */}
@@ -108,7 +114,7 @@ function ValiderAffectations() {
                   <label className="block text-xs font-semibold text-gray-500 mb-1">Changer le projet affecté</label>
                   <select
                     onChange={e => handleModifier(aff.id, parseInt(e.target.value))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
                     defaultValue=""
                   >
                     <option value="" disabled>Sélectionner un nouveau projet...</option>
@@ -121,7 +127,7 @@ function ValiderAffectations() {
                 <button
                   onClick={() => handleValider(aff.id)}
                   disabled={aff.valide === 'validé'}
-                  className="w-full bg-purple-700 text-white py-2 rounded-xl hover:bg-purple-800 transition-all font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full bg-[#0891B2] text-white py-2 rounded-xl hover:bg-[#0B2A45] transition-all font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {aff.valide === 'validé' ? '✅ Déjà validée' : 'Valider cette affectation'}
                 </button>

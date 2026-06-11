@@ -6,6 +6,7 @@ class Groupe(Base):
     __tablename__ = "groupes"
     id = Column(Integer, primary_key=True, index=True)
     nom = Column(String(50), unique=True)
+    createur_id = Column(Integer, ForeignKey("utilisateurs.id"), nullable=True)
     etudiants = relationship("Etudiant", back_populates="groupe")
     choix = relationship("Choix", back_populates="groupe")
 
@@ -14,8 +15,10 @@ class Etudiant(Base):
     id = Column(Integer, primary_key=True, index=True)
     nom = Column(String(50))
     prenom = Column(String(50))
+    email = Column(String(100), nullable=True)
     filiere = Column(String(50))
     groupe_id = Column(Integer, ForeignKey("groupes.id"))
+    utilisateur_id = Column(Integer, ForeignKey("utilisateurs.id"), nullable=True)
     groupe = relationship("Groupe", back_populates="etudiants")
 
 class Encadrant(Base):
@@ -62,3 +65,4 @@ class Utilisateur(Base):
     mot_de_passe = Column(String(255))
     role = Column(String(20))
     encadrant_id = Column(Integer, nullable=True)  # lien vers table encadrants
+    groupe_id = Column(Integer, nullable=True)  # lien vers table groupes
