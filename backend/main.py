@@ -13,7 +13,28 @@ import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'AI_engine'))
 from affectation import affecter_projets_avec_rapport
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-key-in-production")
+def load_env_file():
+    env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+    if not os.path.exists(env_path):
+        return
+
+    with open(env_path, encoding="utf-8") as env_file:
+        for raw_line in env_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+load_env_file()
+
+APP_ENV = os.getenv("APP_ENV", "development")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if APP_ENV == "production":
+        raise RuntimeError("SECRET_KEY doit etre defini en production")
+    SECRET_KEY = "development-only-secret-key"
+
 TOKEN_TTL_SECONDS = 60 * 60 * 8
 
 models.Base.metadata.create_all(bind=engine)
