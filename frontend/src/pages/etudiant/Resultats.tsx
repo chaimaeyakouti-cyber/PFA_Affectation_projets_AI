@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAffectations, getGroupes, getProjets, getChoix } from '../../services/api'
+import { getMonAffectation, getMonGroupe, getProjets, getMesChoix } from '../../services/api'
 
 const P = {
   bg: '#F8F7FC',
@@ -29,6 +29,9 @@ const statutStyle = (valide: string) => {
 
 export default function Resultats() {
   const navigate = useNavigate()
+  const [currentUser] = useState<any>(() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} }
+  })
   const [loading, setLoading] = useState(true)
   const [affectations, setAffectations] = useState<Affectation[]>([])
   const [groupes, setGroupes] = useState<Groupe[]>([])
@@ -38,16 +41,33 @@ export default function Resultats() {
 
   useEffect(() => {
     const load = async () => {
+      if (!currentUser?.id) {
+        setError('Connectez-vous pour consulter votre résultat.')
+        setLoading(false)
+        return
+      }
+
       try {
-        const [a, g, p, c] = await Promise.all([
-          getAffectations(), getGroupes(), getProjets(), getChoix()
+        const [g, p, c] = await Promise.all([
+          getMonGroupe(currentUser.id), getProjets(), getMesChoix(currentUser.id)
         ])
-        setAffectations(a.data)
-        setGroupes(g.data)
+        setGroupes([g.data])
         setProjets(p.data)
         setChoix(c.data)
+
+        try {
+          const a = await getMonAffectation(currentUser.id)
+          setAffectations([{
+            id: a.data.affectation_id,
+            groupe_id: a.data.groupe_id,
+            projet_id: a.data.projet_id,
+            valide: a.data.valide,
+          }])
+        } catch (_) {
+          setAffectations([])
+        }
       } catch (_) {
-        setError('Impossible de charger les données. Vérifiez que le serveur est actif.')
+        setError('Impossible de charger votre groupe. Vérifiez que vous avez créé un groupe.')
       } finally {
         setLoading(false)
       }
@@ -86,13 +106,13 @@ export default function Resultats() {
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <h1 style={{ margin: '0 0 8px', color: '#fff', fontSize: 32, fontWeight: 700 }}>Résultats d'affectation</h1>
           <p style={{ margin: 0, color: '#C4B5FD', fontSize: 15, fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-            Consultez les projets assignés à chaque groupe après traitement algorithmique.
+            Consultez le projet assigné à votre groupe après traitement algorithmique.
           </p>
           {!loading && (
             <div style={{ display: 'flex', gap: 28, marginTop: 28 }}>
               {[
-                { label: 'Total groupes', val: affectations.length },
-                { label: 'Affectations validées', val: affectations.filter(a => a.valide === 'validé').length },
+                { label: 'Mon groupe', val: groupes.length },
+                { label: 'Affectation validée', val: affectations.filter(a => a.valide === 'validé').length },
                 { label: 'En attente', val: affectations.filter(a => a.valide === 'en_attente').length },
               ].map(s => (
                 <div key={s.label}>

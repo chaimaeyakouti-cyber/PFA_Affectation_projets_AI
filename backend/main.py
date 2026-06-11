@@ -56,6 +56,24 @@ def get_db():
     finally:
         db.close()
 
+def find_groupe_for_user(user_id: int, db: Session):
+    user = db.query(models.Utilisateur).filter(models.Utilisateur.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    groupe = None
+    if user.groupe_id:
+        groupe = db.query(models.Groupe).filter(models.Groupe.id == user.groupe_id).first()
+    if not groupe:
+        groupe = db.query(models.Groupe).filter(models.Groupe.createur_id == user_id).first()
+    if not groupe:
+        etudiant = db.query(models.Etudiant).filter(models.Etudiant.utilisateur_id == user_id).first()
+        groupe = etudiant.groupe if etudiant else None
+    if not groupe:
+        raise HTTPException(status_code=404, detail="Aucun groupe associé à cet utilisateur")
+
+    return groupe
+
 
 @app.get("/")
 def read_root():
@@ -182,6 +200,11 @@ def create_choix(choix: schemas.ChoixCreate, db: Session = Depends(get_db)):
 def get_choix(db: Session = Depends(get_db)):
     return db.query(models.Choix).all()
 
+@app.get("/mes-choix/{user_id}", response_model=list[schemas.Choix])
+def get_mes_choix(user_id: int, db: Session = Depends(get_db)):
+    groupe = find_groupe_for_user(user_id, db)
+    return db.query(models.Choix).filter(models.Choix.groupe_id == groupe.id).all()
+
 
 
 
@@ -289,6 +312,24 @@ def lancer_affectation(db: Session = Depends(get_db)):
 @app.get("/affectations/", response_model=list[schemas.Affectation])
 def get_affectations(db: Session = Depends(get_db)):
     return db.query(models.Affectation).all()
+
+@app.get("/mon-affectation/{user_id}")
+def get_mon_affectation(user_id: int, db: Session = Depends(get_db)):
+    groupe = find_groupe_for_user(user_id, db)
+    affectation = db.query(models.Affectation).filter(models.Affectation.groupe_id == groupe.id).first()
+    if not affectation:
+        raise HTTPException(status_code=404, detail="Aucune affectation disponible pour ce groupe")
+
+    projet = db.query(models.Projet).filter(models.Projet.id == affectation.projet_id).first() if affectation.projet_id else None
+    return {
+        "affectation_id": affectation.id,
+        "groupe_id": groupe.id,
+        "groupe_nom": groupe.nom,
+        "projet_id": affectation.projet_id,
+        "projet_titre": projet.titre if projet else None,
+        "projet_description": projet.description if projet else None,
+        "valide": affectation.valide,
+    }
 
 
 @app.put("/affectations/{affectation_id}/valider")

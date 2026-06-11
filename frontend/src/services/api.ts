@@ -23,6 +23,7 @@ export const getProjets       = ()          => API.get('/projets/')
 // ── CHOIX ────────────────────────────────────────
 export const creerChoix       = (data: any) => API.post('/choix/', data)
 export const getChoix         = ()          => API.get('/choix/')
+export const getMesChoix      = (userId: number) => API.get(`/mes-choix/${userId}`)
 
 // ── AFFECTATIONS ─────────────────────────────────
 export const lancerAffectation   = ()                              => API.post('/affecter/')
