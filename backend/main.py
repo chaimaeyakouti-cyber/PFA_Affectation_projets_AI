@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 import models, schemas
@@ -6,8 +6,15 @@ from database import engine, SessionLocal
 import sys
 import os
 import hashlib
+import base64
+import hmac
+import json
+import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'AI_engine'))
 from affectation import affecter_projets_avec_rapport
+
+SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-key-in-production")
+TOKEN_TTL_SECONDS = 60 * 60 * 8
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -56,6 +63,58 @@ def get_db():
     finally:
         db.close()
 
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def _b64encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+def _b64decode(data: str) -> bytes:
+    padding = "=" * (-len(data) % 4)
+    return base64.urlsafe_b64decode(data + padding)
+
+def create_access_token(user: models.Utilisateur) -> str:
+    payload = {
+        "sub": user.id,
+        "role": user.role,
+        "exp": int(time.time()) + TOKEN_TTL_SECONDS,
+    }
+    payload_b64 = _b64encode(json.dumps(payload, separators=(",", ":")).encode())
+    signature = hmac.new(SECRET_KEY.encode(), payload_b64.encode(), hashlib.sha256).digest()
+    return f"{payload_b64}.{_b64encode(signature)}"
+
+def verify_access_token(token: str) -> dict:
+    try:
+        payload_b64, signature_b64 = token.split(".", 1)
+        expected_signature = hmac.new(SECRET_KEY.encode(), payload_b64.encode(), hashlib.sha256).digest()
+        received_signature = _b64decode(signature_b64)
+        if not hmac.compare_digest(expected_signature, received_signature):
+            raise ValueError
+        payload = json.loads(_b64decode(payload_b64))
+        if int(payload.get("exp", 0)) < int(time.time()):
+            raise HTTPException(status_code=401, detail="Session expirée")
+        return payload
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token invalide")
+
+def get_current_user(
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentification requise")
+    payload = verify_access_token(authorization.replace("Bearer ", "", 1))
+    user = db.query(models.Utilisateur).filter(models.Utilisateur.id == payload.get("sub")).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Utilisateur introuvable")
+    return user
+
+def ensure_same_user_or_coordinateur(user_id: int, current_user: models.Utilisateur):
+    if current_user.id != user_id and current_user.role != "coordinateur":
+        raise HTTPException(status_code=403, detail="Accès interdit")
+
 def find_groupe_for_user(user_id: int, db: Session):
     user = db.query(models.Utilisateur).filter(models.Utilisateur.id == user_id).first()
     if not user:
@@ -81,18 +140,23 @@ def read_root():
 
 
 @app.post("/groupes/", response_model=schemas.Groupe)
-def create_groupe(groupe: schemas.GroupeCreate, db: Session = Depends(get_db)):
+def create_groupe(
+    groupe: schemas.GroupeCreate,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
     if len(groupe.etudiants) > 3:
         raise HTTPException(status_code=400, detail="Un groupe ne peut pas dépasser 3 étudiants")
-    new_groupe = models.Groupe(nom=groupe.nom, createur_id=groupe.createur_id)
+    createur_id = current_user.id if current_user.role == "etudiant" else groupe.createur_id
+    new_groupe = models.Groupe(nom=groupe.nom, createur_id=createur_id)
     db.add(new_groupe)
     db.commit()
     db.refresh(new_groupe)
     for etudiant_data in groupe.etudiants:
         new_etudiant = models.Etudiant(**etudiant_data.model_dump(), groupe_id=new_groupe.id)
         db.add(new_etudiant)
-    if groupe.createur_id:
-        user = db.query(models.Utilisateur).filter(models.Utilisateur.id == groupe.createur_id).first()
+    if createur_id:
+        user = db.query(models.Utilisateur).filter(models.Utilisateur.id == createur_id).first()
         if user:
             user.groupe_id = new_groupe.id
     db.commit()
@@ -104,7 +168,12 @@ def get_groupes(db: Session = Depends(get_db)):
     return db.query(models.Groupe).all()
 
 @app.get("/mon-groupe/{user_id}", response_model=schemas.Groupe)
-def get_mon_groupe(user_id: int, db: Session = Depends(get_db)):
+def get_mon_groupe(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    ensure_same_user_or_coordinateur(user_id, current_user)
     user = db.query(models.Utilisateur).filter(models.Utilisateur.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
@@ -123,7 +192,13 @@ def get_mon_groupe(user_id: int, db: Session = Depends(get_db)):
     return groupe
 
 @app.put("/users/{user_id}/lier-groupe/{groupe_id}", response_model=schemas.UserResponse)
-def lier_groupe(user_id: int, groupe_id: int, db: Session = Depends(get_db)):
+def lier_groupe(
+    user_id: int,
+    groupe_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    ensure_same_user_or_coordinateur(user_id, current_user)
     user = db.query(models.Utilisateur).filter(models.Utilisateur.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
@@ -201,7 +276,12 @@ def get_choix(db: Session = Depends(get_db)):
     return db.query(models.Choix).all()
 
 @app.get("/mes-choix/{user_id}", response_model=list[schemas.Choix])
-def get_mes_choix(user_id: int, db: Session = Depends(get_db)):
+def get_mes_choix(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    ensure_same_user_or_coordinateur(user_id, current_user)
     groupe = find_groupe_for_user(user_id, db)
     return db.query(models.Choix).filter(models.Choix.groupe_id == groupe.id).all()
 
@@ -314,7 +394,12 @@ def get_affectations(db: Session = Depends(get_db)):
     return db.query(models.Affectation).all()
 
 @app.get("/mon-affectation/{user_id}")
-def get_mon_affectation(user_id: int, db: Session = Depends(get_db)):
+def get_mon_affectation(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    ensure_same_user_or_coordinateur(user_id, current_user)
     groupe = find_groupe_for_user(user_id, db)
     affectation = db.query(models.Affectation).filter(models.Affectation.groupe_id == groupe.id).first()
     if not affectation:
@@ -360,9 +445,6 @@ def modifier_affectation(affectation_id: int, nouveau_projet_id: int, db: Sessio
 # AUTHENTIFICATION
 
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
 @app.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
     existant = db.query(models.Utilisateur).filter(
@@ -402,17 +484,27 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
 
     return new_user
 
-@app.post("/login", response_model=schemas.UserResponse)
+@app.post("/login", response_model=schemas.AuthResponse)
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(models.Utilisateur).filter(
         models.Utilisateur.email == user.email
     ).first()
     if not db_user or db_user.mot_de_passe != hash_password(user.mot_de_passe):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    return db_user
+    return {
+        "user": db_user,
+        "access_token": create_access_token(db_user),
+        "token_type": "bearer",
+    }
 
 @app.get("/user-by-email", response_model=schemas.UserResponse)
-def get_user_by_email(email: str, db: Session = Depends(get_db)):
+def get_user_by_email(
+    email: str,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    if current_user.email != email and current_user.role != "coordinateur":
+        raise HTTPException(status_code=403, detail="Accès interdit")
     user = db.query(models.Utilisateur).filter(models.Utilisateur.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")

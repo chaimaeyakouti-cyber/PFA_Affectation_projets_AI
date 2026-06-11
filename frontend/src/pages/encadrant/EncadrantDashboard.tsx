@@ -118,6 +118,7 @@ function EncadrantDashboard() {
         <button
           onClick={() => {
             localStorage.removeItem('user')
+            localStorage.removeItem('access_token')
             navigate('/')
           }}
           className="mt-8 text-gray-400 hover:text-red-500 text-sm"

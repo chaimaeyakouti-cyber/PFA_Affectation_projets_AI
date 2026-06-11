@@ -95,3 +95,8 @@ class UserResponse(BaseModel):
     groupe_id: Optional[int] = None
     class Config:
         from_attributes = True
+
+class AuthResponse(BaseModel):
+    user: UserResponse
+    access_token: str
+    token_type: str = "bearer"

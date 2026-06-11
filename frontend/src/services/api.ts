@@ -4,6 +4,23 @@ const API = axios.create({
   baseURL: 'http://127.0.0.1:8000'
 })
 
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+API.interceptors.response.use(
+  response => response,
+  error => {
+    if (error?.response?.status === 401) {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('user')
+    }
+    return Promise.reject(error)
+  }
+)
+
 // ── GROUPES ──────────────────────────────────────
 export const creerGroupe      = (data: any) => API.post('/groupes/', data)
 export const getGroupes       = ()          => API.get('/groupes/')
@@ -34,5 +51,8 @@ export const modifierAffectation = (id: number, nouveau_projet_id: number) =>
   API.put(`/affectations/${id}/modifier?nouveau_projet_id=${nouveau_projet_id}`)
 
 // ── AUTH ─────────────────────────────────────────
+export const registerUser     = (data: any) => API.post('/register', data)
+export const loginUser        = (data: any) => API.post('/login', data)
+export const getUserByEmail   = (email: string) => API.get(`/user-by-email?email=${encodeURIComponent(email)}`)
 export const lierGroupe       = (userId: number, groupeId: number) =>
   API.put(`/users/${userId}/lier-groupe/${groupeId}`)

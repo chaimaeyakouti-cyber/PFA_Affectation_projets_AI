@@ -26,6 +26,7 @@ export default function Layout({ children, backPath, backLabel }: LayoutProps) {
 
   const handleLogout = () => {
     localStorage.removeItem('user')
+    localStorage.removeItem('access_token')
     navigate('/')
   }
 

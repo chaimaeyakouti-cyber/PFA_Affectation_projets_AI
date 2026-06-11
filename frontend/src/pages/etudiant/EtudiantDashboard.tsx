@@ -108,7 +108,7 @@ export default function EtudiantDashboard() {
               <div style={{ color: '#fff', fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>{currentUser?.nom || 'Étudiant'}</div>
               <div style={{ color: '#C4B5FD', fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>{currentUser?.email}</div>
             </div>
-            <button onClick={() => { localStorage.removeItem('user'); navigate('/') }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#C4B5FD', borderRadius: 8, padding: '5px 12px', cursor: 'pointer', fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginLeft: 8 }}>
+            <button onClick={() => { localStorage.removeItem('user'); localStorage.removeItem('access_token'); navigate('/') }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#C4B5FD', borderRadius: 8, padding: '5px 12px', cursor: 'pointer', fontSize: 12, fontFamily: "'DM Sans', sans-serif", marginLeft: 8 }}>
               Déconnexion
             </button>
           </div>

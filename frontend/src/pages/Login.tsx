@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import { getUserByEmail, loginUser, registerUser } from '../services/api'
 
 const P = {
   deep: '#2D1B69',
@@ -25,15 +25,16 @@ export default function Login() {
     setLoading(true)
     try {
       if (mode === 'register') {
-        await axios.post('http://127.0.0.1:8000/register', form)
+        await registerUser(form)
         setMode('login')
         setErreur('Compte créé ! Connectez-vous maintenant.')
       } else {
-        const res = await axios.post('http://127.0.0.1:8000/login', {
+        const res = await loginUser({
           email: form.email,
           mot_de_passe: form.mot_de_passe
         })
-        const user = res.data
+        const { user, access_token } = res.data
+        localStorage.setItem('access_token', access_token)
         localStorage.setItem('user', JSON.stringify(user))
         if (user.role === 'etudiant') navigate('/etudiant')
         else if (user.role === 'encadrant') navigate('/encadrant')
@@ -47,16 +48,20 @@ export default function Login() {
   }
 
   const handleGoogleLogin = () => {
-    const email = prompt('Entrez votre email INPT (@inpt.ac.ma) :')
+    alert('Connexion Google non configurée pour le moment. Utilisez email et mot de passe.')
+    return
+    const email = ''
     if (!email) return
     if (!email.endsWith('@inpt.ac.ma')) {
       alert('Veuillez utiliser votre email INPT (@inpt.ac.ma)')
       return
     }
-    axios.get(`http://127.0.0.1:8000/user-by-email?email=${email}`)
+    getUserByEmail(email)
       .then(res => {
-        localStorage.setItem('user', JSON.stringify(res.data))
-        const role = res.data.role
+        const { user, access_token } = res.data
+        localStorage.setItem('access_token', access_token)
+        localStorage.setItem('user', JSON.stringify(user))
+        const role = user.role
         if (role === 'etudiant') navigate('/etudiant')
         else if (role === 'encadrant') navigate('/encadrant')
         else if (role === 'coordinateur') navigate('/coordinateur')
