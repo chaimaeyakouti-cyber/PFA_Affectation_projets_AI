@@ -97,6 +97,11 @@ export default function Resultats() {
             fontFamily: "Inter, system-ui, sans-serif",
           }}>← Retour</button>
           <span style={{ color: '#A5F3FC', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>Résultats d'affectation</span>
+          <button onClick={() => { localStorage.removeItem('user'); localStorage.removeItem('access_token'); navigate('/') }} style={{
+            marginLeft: 'auto', background: '#fff', border: 'none', color: P.deep,
+            borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13,
+            fontFamily: "Inter, system-ui, sans-serif", fontWeight: 700,
+          }}>Déconnexion</button>
         </div>
       </header>
 

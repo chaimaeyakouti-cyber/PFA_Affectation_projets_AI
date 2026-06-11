@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  getGroupes, getProjets, getEncadrants, getChoix,
-  getAffectations, lancerAffectation, validerAffectation, modifierAffectation
+  getGroupes,
+  getProjets,
+  getEncadrants,
+  getChoix,
+  getAffectations,
+  lancerAffectation,
+  supprimerGroupe,
 } from '../../services/api'
 
-// ── Design tokens ──────────────────────────────────────────────
 const P = {
   bg: '#F5F8FB',
   card: '#FFFFFF',
@@ -13,7 +18,7 @@ const P = {
   light: '#E0F2FE',
   accent: '#0891B2',
   text: '#102033',
-  muted: '#6B7280',
+  muted: '#64748B',
   border: '#D8E3ED',
   success: '#059669',
   successBg: '#D1FAE5',
@@ -23,108 +28,52 @@ const P = {
   errorBg: '#FEF2F2',
 }
 
-// ── Types ───────────────────────────────────────────────────────
-interface Etudiant { nom: string; email: string; filiere: string }
+interface Etudiant { nom: string; prenom?: string; email?: string; filiere: string }
 interface Groupe { id: number; nom: string; etudiants: Etudiant[] }
-interface Encadrant { id: number; nom: string; email: string; specialite: string }
+interface Encadrant { id: number; nom: string; prenom?: string; email: string; specialite?: string }
 interface Projet { id: number; titre: string; description: string; encadrant_id: number }
 interface Choix { id: number; groupe_id: number; projet_id: number; priorite: number }
 interface Affectation { id: number; groupe_id: number; projet_id: number | null; valide: string }
 
-type Tab = 'overview' | 'groupes' | 'affectation' | 'gestion'
+type Tab = 'overview' | 'groupes' | 'affectation'
 
-// ── Helpers ─────────────────────────────────────────────────────
-const statutBadge = (valide: string) => {
-  if (valide === 'validé') return { bg: P.successBg, color: P.success, label: '✓ Validé' }
-  if (valide === 'modifié') return { bg: '#DBEAFE', color: '#1E40AF', label: '✎ Modifié' }
-  return { bg: P.warningBg, color: P.warning, label: '⏳ En attente' }
-}
-
-// ══════════════════════════════════════════════════════════════════
 export default function CoordinateurDashboard() {
+  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('overview')
-
-  // Data
   const [groupes, setGroupes] = useState<Groupe[]>([])
   const [projets, setProjets] = useState<Projet[]>([])
   const [encadrants, setEncadrants] = useState<Encadrant[]>([])
   const [choix, setChoix] = useState<Choix[]>([])
   const [affectations, setAffectations] = useState<Affectation[]>([])
   const [loading, setLoading] = useState(true)
-
-  // Affectation
   const [launching, setLaunching] = useState(false)
   const [launchResult, setLaunchResult] = useState<any[] | null>(null)
-  const [launchError, setLaunchError] = useState('')
-  const [launchSuccess, setLaunchSuccess] = useState(false)
-
-  // Gestion
-  const [modifId, setModifId] = useState<number | null>(null)
-  const [newProjetId, setNewProjetId] = useState<number | ''>('')
-  const [actionMsg, setActionMsg] = useState('')
-  const [actionError, setActionError] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
 
   const loadAll = async () => {
     setLoading(true)
     try {
       const [g, p, e, c, a] = await Promise.all([
-        getGroupes(), getProjets(), getEncadrants(), getChoix(), getAffectations()
+        getGroupes(), getProjets(), getEncadrants(), getChoix(), getAffectations(),
       ])
       setGroupes(g.data)
       setProjets(p.data)
       setEncadrants(e.data)
       setChoix(c.data)
       setAffectations(a.data)
-    } catch (_) {}
-    setLoading(false)
+    } catch (_) {
+      setError('Impossible de charger les données.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { loadAll() }, [])
 
-  // ── Lookups ──────────────────────────────────────────────────
-  const getGroupe = (id: number) => groupes.find(g => g.id === id)
   const getProjet = (id: number | null) => id ? projets.find(p => p.id === id) : null
-  const getEncadrant = (id: number) => encadrants.find(e => e.id === id)
   const getChoixGroupe = (gid: number) => choix.filter(c => c.groupe_id === gid).sort((a, b) => a.priorite - b.priorite)
 
-  // ── Actions ──────────────────────────────────────────────────
-  const handleLancer = async () => {
-    setLaunching(true); setLaunchError(''); setLaunchSuccess(false)
-    try {
-      const res = await lancerAffectation()
-      setLaunchResult(res.data.affectations)
-      setLaunchSuccess(true)
-      await loadAll()
-    } catch (e: any) {
-      setLaunchError(e?.response?.data?.detail || 'Erreur lors du lancement.')
-    } finally { setLaunching(false) }
-  }
-
-  const handleValider = async (id: number) => {
-    setActionMsg(''); setActionError('')
-    try {
-      await validerAffectation(id)
-      setActionMsg(`Affectation #${id} validée avec succès.`)
-      await loadAll()
-    } catch (e: any) {
-      setActionError(e?.response?.data?.detail || 'Erreur lors de la validation.')
-    }
-  }
-
-  const handleModifier = async (id: number) => {
-    if (!newProjetId) return setActionError('Sélectionnez un projet.')
-    setActionMsg(''); setActionError('')
-    try {
-      await modifierAffectation(id, Number(newProjetId))
-      setActionMsg(`Affectation #${id} modifiée avec succès.`)
-      setModifId(null); setNewProjetId('')
-      await loadAll()
-    } catch (e: any) {
-      setActionError(e?.response?.data?.detail || 'Erreur lors de la modification.')
-    }
-  }
-
-  // ── Stats ────────────────────────────────────────────────────
   const stats = {
     groupes: groupes.length,
     projets: projets.length,
@@ -135,259 +84,225 @@ export default function CoordinateurDashboard() {
     sansChoix: groupes.filter(g => getChoixGroupe(g.id).length === 0).length,
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('user')
+    localStorage.removeItem('access_token')
+    navigate('/')
+  }
+
+  const handleLancer = async () => {
+    setLaunching(true)
+    setError('')
+    setMessage('')
+    try {
+      const res = await lancerAffectation()
+      setLaunchResult(res.data.affectations)
+      setMessage('Affectation générée. Les encadrants peuvent maintenant valider leurs affectations.')
+      await loadAll()
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || 'Erreur lors du lancement.')
+    } finally {
+      setLaunching(false)
+    }
+  }
+
+  const handleSupprimerGroupe = async (groupe: Groupe) => {
+    const ok = window.confirm(`Supprimer le groupe "${groupe.nom}" ? Ses étudiants, choix et affectations seront retirés.`)
+    if (!ok) return
+
+    setError('')
+    setMessage('')
+    try {
+      await supprimerGroupe(groupe.id)
+      setMessage(`Groupe "${groupe.nom}" supprimé.`)
+      await loadAll()
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || 'Erreur lors de la suppression du groupe.')
+    }
+  }
+
   const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'overview', label: 'Vue d\'ensemble', icon: '📊' },
-    { id: 'groupes', label: 'Groupes & Choix', icon: '👥' },
-    { id: 'affectation', label: 'Lancer l\'affectation', icon: '⚙️' },
-    { id: 'gestion', label: 'Gérer les affectations', icon: '✅' },
+    { id: 'overview', label: 'Vue d’ensemble', icon: '📊' },
+    { id: 'groupes', label: 'Groupes & choix', icon: '👥' },
+    { id: 'affectation', label: 'Lancer le moteur', icon: '⚙️' },
   ]
 
-  // ════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: '100vh', background: P.bg, fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: P.bg, fontFamily: 'Inter, system-ui, sans-serif' }}>
       <style>{`
         * { box-sizing: border-box; }
-        input, select, button { font-family: Inter, system-ui, sans-serif !important; }
-        .tab-btn { transition: all 0.2s; cursor: pointer; }
-        .tab-btn:hover { background: rgba(255,255,255,0.15) !important; }
-        .action-btn { transition: all 0.18s; cursor: pointer; }
-        .action-btn:hover:not(:disabled) { filter: brightness(0.9); transform: translateY(-1px); }
+        button, input, select { font-family: Inter, system-ui, sans-serif !important; }
+        .tab-btn, .action-btn { transition: all 0.18s ease; cursor: pointer; }
+        .tab-btn:hover { background: rgba(255,255,255,0.13) !important; }
+        .action-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(0.96); }
         .action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-        .stat-card:hover { box-shadow: 0 6px 24px rgba(8,145,178,0.13); transform: translateY(-2px); }
-        .stat-card { transition: all 0.2s; }
-        .row-hover:hover { background: #F5F3FF !important; }
-        .field-input:focus { outline: none; border-color: ${P.accent} !important; box-shadow: 0 0 0 3px rgba(8,145,178,0.14); }
+        .card-hover { transition: all 0.18s ease; }
+        .card-hover:hover { box-shadow: 0 10px 28px rgba(8,145,178,0.12); transform: translateY(-1px); }
       `}</style>
 
-      {/* ── HEADER ── */}
       <header style={{ background: P.deep, borderBottom: `3px solid ${P.accent}`, padding: '0 40px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 8, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎓</div>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: P.accent, display: 'grid', placeItems: 'center', fontSize: 18 }}>🎓</div>
             <div>
-              <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>PFA Affectation</div>
-              <div style={{ color: '#A5F3FC', fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 300 }}>INPT · Espace Coordinateur</div>
+              <div style={{ color: '#fff', fontWeight: 700 }}>PFA Affectation</div>
+              <div style={{ color: '#A5F3FC', fontSize: 12 }}>INPT · Espace Coordinateur</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button onClick={loadAll} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#A5F3FC', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 12 }}>
-              ↻ Actualiser
+            <button onClick={loadAll} className="action-btn" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#A5F3FC', borderRadius: 8, padding: '7px 14px', fontSize: 12 }}>
+              Actualiser
             </button>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14 }}>C</div>
-            <span style={{ color: '#A5F3FC', fontSize: 13 }}>Coordinateur</span>
+            <button onClick={handleLogout} className="action-btn" style={{ background: '#fff', border: 'none', color: P.deep, borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700 }}>
+              Déconnexion
+            </button>
           </div>
         </div>
       </header>
 
-      {/* ── HERO ── */}
-      <div style={{ background: `linear-gradient(135deg, ${P.deep} 0%, #0B2A45 55%, ${P.mid} 100%)`, padding: '36px 40px 32px' }}>
+      <section style={{ background: `linear-gradient(135deg, ${P.deep} 0%, #0B2A45 55%, ${P.mid} 100%)`, padding: '38px 40px 30px', color: '#fff' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <h1 style={{ margin: '0 0 6px', color: '#fff', fontSize: 30, fontWeight: 700 }}>Tableau de bord Coordinateur</h1>
-          <p style={{ margin: '0 0 28px', color: '#A5F3FC', fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 300 }}>
-            Supervisez les groupes, lancez l'algorithme d'affectation et gérez les résultats.
+          <h1 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 800 }}>Tableau de bord Coordinateur</h1>
+          <p style={{ margin: '0 0 26px', color: '#A5F3FC', fontSize: 14 }}>
+            Supervisez les groupes et lancez le moteur d’affectation. La validation finale reste du côté des encadrants.
           </p>
-          {/* Quick stats */}
           {!loading && (
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               {[
-                { label: 'Groupes', val: stats.groupes, icon: '👥' },
-                { label: 'Projets', val: stats.projets, icon: '📁' },
-                { label: 'Choix soumis', val: stats.choix, icon: '📋' },
-                { label: 'Affectations', val: stats.affectes, icon: '🎯' },
-                { label: 'Validées', val: stats.valides, icon: '✅' },
-              ].map(s => (
-                <div key={s.label} style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 20px', minWidth: 100 }}>
-                  <div style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>{s.val}</div>
-                  <div style={{ color: '#A5F3FC', fontSize: 11, fontFamily: "Inter, system-ui, sans-serif" }}>{s.icon} {s.label}</div>
+                ['Groupes', stats.groupes],
+                ['Projets', stats.projets],
+                ['Choix soumis', stats.choix],
+                ['Affectations générées', stats.affectes],
+                ['En attente encadrants', stats.enAttente],
+              ].map(([label, val]) => (
+                <div key={label} style={{ minWidth: 128, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 16px' }}>
+                  <div style={{ fontSize: 24, fontWeight: 800 }}>{val}</div>
+                  <div style={{ color: '#A5F3FC', fontSize: 12 }}>{label}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* ── TAB NAV ── */}
-      <div style={{ background: P.deep, borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
+      <nav style={{ background: P.deep, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px', display: 'flex', gap: 4 }}>
           {tabs.map(t => (
-            <button
-              key={t.id}
-              className="tab-btn"
-              onClick={() => setTab(t.id)}
-              style={{
-                background: tab === t.id ? 'rgba(255,255,255,0.15)' : 'transparent',
-                border: 'none',
-                borderBottom: tab === t.id ? `2px solid ${P.accent}` : '2px solid transparent',
-                color: tab === t.id ? '#fff' : '#A5F3FC',
-                padding: '14px 20px',
-                fontSize: 13,
-                fontWeight: tab === t.id ? 500 : 400,
-              }}
-            >
+            <button key={t.id} onClick={() => setTab(t.id)} className="tab-btn" style={{
+              background: tab === t.id ? 'rgba(255,255,255,0.15)' : 'transparent',
+              border: 'none',
+              borderBottom: tab === t.id ? `2px solid ${P.accent}` : '2px solid transparent',
+              color: tab === t.id ? '#fff' : '#A5F3FC',
+              padding: '14px 20px',
+              fontSize: 13,
+              fontWeight: tab === t.id ? 700 : 500,
+            }}>
               {t.icon} {t.label}
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
-      {/* ── CONTENT ── */}
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 40px' }}>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '34px 40px' }}>
+        {message && <Alert kind="success" text={message} onClose={() => setMessage('')} />}
+        {error && <Alert kind="error" text={error} onClose={() => setError('')} />}
+
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: P.muted, fontFamily: "Inter, system-ui, sans-serif" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>Chargement des données...
-          </div>
+          <Empty icon="⏳" title="Chargement des données..." />
         ) : (
           <>
-            {/* ══ TAB: OVERVIEW ══ */}
             {tab === 'overview' && (
               <div>
-                <h2 style={{ margin: '0 0 24px', color: P.text, fontSize: 24, fontWeight: 600 }}>Vue d'ensemble</h2>
-
-                {/* Status cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
-                  {[
-                    { title: 'Groupes sans choix', val: stats.sansChoix, icon: '⚠️', bg: stats.sansChoix > 0 ? P.warningBg : P.successBg, color: stats.sansChoix > 0 ? P.warning : P.success, desc: stats.sansChoix > 0 ? 'Groupes n\'ayant pas encore soumis leurs préférences' : 'Tous les groupes ont soumis leurs choix ✓' },
-                    { title: 'En attente de validation', val: stats.enAttente, icon: '🕐', bg: P.warningBg, color: P.warning, desc: 'Affectations générées mais pas encore validées' },
-                    { title: 'Affectations validées', val: stats.valides, icon: '✅', bg: P.successBg, color: P.success, desc: `Sur ${stats.affectes} affectation(s) au total` },
-                  ].map(c => (
-                    <div key={c.title} className="stat-card" style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, padding: '24px 28px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                        <span style={{ fontSize: 28 }}>{c.icon}</span>
-                        <span style={{ background: c.bg, color: c.color, fontSize: 22, fontWeight: 700, padding: '4px 14px', borderRadius: 10 }}>{c.val}</span>
-                      </div>
-                      <div style={{ color: P.text, fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{c.title}</div>
-                      <div style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif", lineHeight: 1.5 }}>{c.desc}</div>
-                    </div>
-                  ))}
+                <h2 style={titleStyle}>Vue d’ensemble</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginBottom: 28 }}>
+                  <StatusCard title="Groupes sans choix" value={stats.sansChoix} good={stats.sansChoix === 0} description={stats.sansChoix === 0 ? 'Tous les groupes ont soumis leurs choix.' : 'Ces groupes doivent compléter leurs préférences.'} />
+                  <StatusCard title="Affectations à valider" value={stats.enAttente} good={stats.enAttente === 0} description="Ces affectations sont traitées par les encadrants." />
+                  <StatusCard title="Affectations validées" value={stats.valides} good={stats.valides > 0} description={`Sur ${stats.affectes} affectation(s) générée(s).`} />
                 </div>
 
-                {/* Projets par encadrant */}
-                <div style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, padding: '24px 28px', marginBottom: 24 }}>
-                  <h3 style={{ margin: '0 0 20px', color: P.text, fontSize: 17, fontWeight: 600 }}>Projets par encadrant</h3>
+                <div style={panelStyle}>
+                  <h3 style={sectionTitleStyle}>Projets par encadrant</h3>
                   {encadrants.length === 0 ? (
-                    <p style={{ color: P.muted, fontFamily: "Inter, system-ui, sans-serif", fontSize: 13 }}>Aucun encadrant enregistré.</p>
+                    <p style={mutedStyle}>Aucun encadrant enregistré.</p>
                   ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
                       {encadrants.map(enc => {
                         const lesProjets = projets.filter(p => p.encadrant_id === enc.id)
                         return (
-                          <div key={enc.id} style={{ background: P.light, borderRadius: 10, padding: '16px 18px' }}>
+                          <div key={enc.id} style={{ background: P.light, borderRadius: 10, padding: 16 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                              <div style={{ width: 36, height: 36, borderRadius: '50%', background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14, fontWeight: 700 }}>
-                                {enc.nom?.[0]?.toUpperCase()}
-                              </div>
+                              <Avatar label={enc.nom} />
                               <div>
-                                <div style={{ color: P.text, fontSize: 14, fontWeight: 600 }}>{enc.nom}</div>
-                                <div style={{ color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif" }}>{enc.specialite}</div>
+                                <div style={{ fontWeight: 700, color: P.text }}>{enc.nom}</div>
+                                <div style={{ color: P.muted, fontSize: 12 }}>{enc.email}</div>
                               </div>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {lesProjets.length === 0 ? (
-                                <span style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>Aucun projet proposé</span>
-                              ) : lesProjets.map(p => (
-                                <div key={p.id} style={{ background: '#fff', borderRadius: 7, padding: '8px 12px', fontSize: 13, color: P.text, fontFamily: "Inter, system-ui, sans-serif" }}>
-                                  📁 {p.titre}
-                                </div>
-                              ))}
-                            </div>
+                            {lesProjets.length === 0 ? (
+                              <span style={mutedStyle}>Aucun projet proposé</span>
+                            ) : lesProjets.map(p => (
+                              <div key={p.id} style={{ background: '#fff', borderRadius: 8, padding: '8px 10px', marginTop: 6, fontSize: 13, color: P.text }}>
+                                {p.titre}
+                              </div>
+                            ))}
                           </div>
                         )
                       })}
                     </div>
                   )}
                 </div>
-
-                {/* Quick actions */}
-                <div style={{ background: P.light, borderRadius: 14, border: `1px solid ${P.border}`, padding: '20px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ color: P.text, fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Prêt à lancer l'affectation ?</div>
-                    <div style={{ color: P.muted, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
-                      {stats.sansChoix > 0 ? `⚠️ ${stats.sansChoix} groupe(s) n'ont pas encore soumis leurs choix.` : '✅ Tous les groupes ont soumis leurs choix.'}
-                    </div>
-                  </div>
-                  <button className="action-btn" onClick={() => setTab('affectation')} style={{
-                    background: P.accent, color: '#fff', border: 'none',
-                    borderRadius: 10, padding: '12px 24px', fontSize: 14, fontWeight: 500,
-                  }}>
-                    Aller à l'affectation →
-                  </button>
-                </div>
               </div>
             )}
 
-            {/* ══ TAB: GROUPES ══ */}
             {tab === 'groupes' && (
               <div>
-                <h2 style={{ margin: '0 0 8px', color: P.text, fontSize: 24, fontWeight: 600 }}>Groupes & Choix de projets</h2>
-                <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif" }}>{groupes.length} groupe(s) enregistré(s)</p>
-
+                <h2 style={titleStyle}>Groupes & choix de projets</h2>
+                <p style={{ ...mutedStyle, marginBottom: 24 }}>{groupes.length} groupe(s) enregistré(s). Le coordinateur peut supprimer un groupe si nécessaire.</p>
                 {groupes.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '60px 0', color: P.muted, fontFamily: "Inter, system-ui, sans-serif" }}>
-                    <div style={{ fontSize: 48, marginBottom: 14 }}>📭</div>
-                    Aucun groupe enregistré pour le moment.
-                  </div>
+                  <Empty icon="📭" title="Aucun groupe enregistré pour le moment." />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                    {groupes.map(g => {
-                      const lesChoix = getChoixGroupe(g.id)
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {groupes.map(groupe => {
+                      const lesChoix = getChoixGroupe(groupe.id)
                       return (
-                        <div key={g.id} style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, overflow: 'hidden' }}>
-                          {/* Group header */}
-                          <div style={{ background: P.light, padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                              <div style={{ width: 40, height: 40, borderRadius: 10, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 16 }}>👥</div>
-                              <div>
-                                <div style={{ color: P.text, fontSize: 16, fontWeight: 600 }}>{g.nom}</div>
-                                <div style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>{g.etudiants?.length || 0} membre(s)</div>
-                              </div>
+                        <div key={groupe.id} className="card-hover" style={panelStyle}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 18 }}>
+                            <div>
+                              <h3 style={{ margin: '0 0 6px', color: P.text, fontSize: 18 }}>{groupe.nom}</h3>
+                              <p style={{ margin: 0, color: P.muted, fontSize: 13 }}>{groupe.etudiants?.length || 0} membre(s) · {lesChoix.length} choix soumis</p>
                             </div>
-                            <span style={{
-                              background: lesChoix.length >= 3 ? P.successBg : P.warningBg,
-                              color: lesChoix.length >= 3 ? P.success : P.warning,
-                              fontSize: 12, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600,
-                              padding: '4px 12px', borderRadius: 20,
-                            }}>
-                              {lesChoix.length >= 3 ? '✓ Choix complets' : `${lesChoix.length}/3 choix`}
-                            </span>
+                            <button onClick={() => handleSupprimerGroupe(groupe)} className="action-btn" style={{ background: P.errorBg, color: P.error, border: '1px solid #FECACA', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontWeight: 700 }}>
+                              Supprimer
+                            </button>
                           </div>
 
-                          <div style={{ padding: '20px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                            {/* Membres */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                             <div>
-                              <p style={{ margin: '0 0 10px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Membres</p>
+                              <div style={labelStyle}>Membres</div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {g.etudiants?.map((e, i) => (
+                                {groupe.etudiants?.map((e, i) => (
                                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: P.light, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.mid, fontSize: 12, fontWeight: 700 }}>
-                                      {e.nom?.[0]?.toUpperCase()}
-                                    </div>
+                                    <Avatar label={e.nom} small />
                                     <div>
-                                      <div style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>{e.nom}</div>
-                                      <div style={{ color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif" }}>{e.filiere} · {e.email}</div>
+                                      <div style={{ color: P.text, fontSize: 13, fontWeight: 700 }}>{e.nom} {e.prenom || ''}</div>
+                                      <div style={{ color: P.muted, fontSize: 12 }}>{e.filiere}</div>
                                     </div>
                                   </div>
                                 ))}
                               </div>
                             </div>
 
-                            {/* Choix */}
                             <div>
-                              <p style={{ margin: '0 0 10px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Choix de projets</p>
+                              <div style={labelStyle}>Choix de projets</div>
                               {lesChoix.length === 0 ? (
-                                <div style={{ color: P.warning, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", background: P.warningBg, borderRadius: 8, padding: '10px 14px' }}>⚠️ Aucun choix soumis</div>
+                                <div style={{ background: P.warningBg, color: P.warning, borderRadius: 9, padding: 12, fontSize: 13 }}>Aucun choix soumis</div>
                               ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                   {lesChoix.map(c => {
-                                    const p = getProjet(c.projet_id)
+                                    const projet = getProjet(c.projet_id)
                                     return (
                                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <div style={{
-                                          width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                                          background: c.priorite === 1 ? P.accent : c.priorite === 2 ? '#22D3EE' : '#A5F3FC',
-                                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                          color: '#fff', fontSize: 11, fontWeight: 700,
-                                        }}>{c.priorite}</div>
-                                        <div style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>{p?.titre || `Projet #${c.projet_id}`}</div>
+                                        <span style={{ width: 26, height: 26, borderRadius: 999, background: c.priorite === 1 ? P.accent : c.priorite === 2 ? '#22D3EE' : '#A5F3FC', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>{c.priorite}</span>
+                                        <span style={{ color: P.text, fontSize: 13 }}>{projet?.titre || `Projet #${c.projet_id}`}</span>
                                       </div>
                                     )
                                   })}
@@ -403,241 +318,57 @@ export default function CoordinateurDashboard() {
               </div>
             )}
 
-            {/* ══ TAB: AFFECTATION ══ */}
             {tab === 'affectation' && (
               <div>
-                <h2 style={{ margin: '0 0 8px', color: P.text, fontSize: 24, fontWeight: 600 }}>Lancer l'affectation</h2>
-                <p style={{ margin: '0 0 32px', color: P.muted, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif" }}>
-                  L'algorithme affecte automatiquement chaque groupe à un projet selon ses préférences et la disponibilité des projets.
-                </p>
+                <h2 style={titleStyle}>Lancer le moteur d’affectation</h2>
+                <p style={{ ...mutedStyle, marginBottom: 24 }}>Le coordinateur lance uniquement le calcul. Les encadrants valident ensuite les affectations liées à leurs projets.</p>
 
-                {/* Pre-launch checklist */}
-                <div style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, padding: '24px 28px', marginBottom: 24 }}>
-                  <h3 style={{ margin: '0 0 18px', color: P.text, fontSize: 16, fontWeight: 600 }}>Vérifications avant lancement</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {[
-                      { ok: stats.groupes > 0, label: `${stats.groupes} groupe(s) enregistré(s)`, detail: 'Des groupes doivent exister pour lancer l\'affectation' },
-                      { ok: stats.projets > 0, label: `${stats.projets} projet(s) disponible(s)`, detail: 'Des projets doivent être proposés par les encadrants' },
-                      { ok: stats.choix > 0, label: `${stats.choix} choix soumis`, detail: 'Au moins un groupe doit avoir soumis ses préférences' },
-                      { ok: stats.sansChoix === 0, label: `Groupes sans choix : ${stats.sansChoix}`, detail: stats.sansChoix > 0 ? 'Certains groupes n\'ont pas encore soumis leurs préférences' : 'Tous les groupes ont soumis leurs choix' },
-                    ].map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 10, background: item.ok ? P.successBg : P.warningBg }}>
-                        <span style={{ fontSize: 18 }}>{item.ok ? '✅' : '⚠️'}</span>
-                        <div>
-                          <div style={{ color: item.ok ? P.success : P.warning, fontSize: 14, fontWeight: 600 }}>{item.label}</div>
-                          <div style={{ color: item.ok ? '#047857' : '#92400E', fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>{item.detail}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 22 }}>
+                  {[
+                    { ok: stats.groupes > 0, label: `${stats.groupes} groupe(s) enregistré(s)` },
+                    { ok: stats.projets > 0, label: `${stats.projets} projet(s) disponible(s)` },
+                    { ok: stats.choix > 0, label: `${stats.choix} choix soumis` },
+                    { ok: stats.sansChoix === 0, label: `Groupes sans choix : ${stats.sansChoix}` },
+                  ].map(item => (
+                    <div key={item.label} style={{ background: item.ok ? P.successBg : P.warningBg, borderRadius: 10, padding: '13px 15px', display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <span>{item.ok ? '✅' : '⚠️'}</span>
+                      <span style={{ color: item.ok ? P.success : P.warning, fontWeight: 700, fontSize: 14 }}>{item.label}</span>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Launch button */}
-                <div style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, padding: '28px 32px', textAlign: 'center', marginBottom: 24 }}>
-                  <div style={{ fontSize: 48, marginBottom: 14 }}>⚙️</div>
-                  <h3 style={{ margin: '0 0 8px', color: P.text, fontSize: 20, fontWeight: 600 }}>Algorithme d'affectation</h3>
-                  <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
-                    Le lancement remplace les affectations existantes. Cette opération est réversible via la gestion manuelle.
+                <div style={{ ...panelStyle, textAlign: 'center', padding: 34 }}>
+                  <div style={{ fontSize: 44, marginBottom: 12 }}>⚙️</div>
+                  <h3 style={{ margin: '0 0 8px', color: P.text, fontSize: 22 }}>Moteur IA d’affectation</h3>
+                  <p style={{ ...mutedStyle, maxWidth: 520, margin: '0 auto 24px' }}>
+                    Le lancement remplace les affectations existantes et crée de nouveaux résultats en attente de validation encadrant.
                   </p>
-
-                  {launchError && (
-                    <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.errorBg, color: P.error, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
-                      ⚠️ {launchError}
-                    </div>
-                  )}
-
-                  <button
-                    className="action-btn"
-                    onClick={handleLancer}
-                    disabled={launching || stats.choix === 0}
-                    style={{
-                      background: P.accent, color: '#fff', border: 'none',
-                      borderRadius: 12, padding: '16px 40px', fontSize: 16,
-                      fontWeight: 600, letterSpacing: 0.3,
-                    }}
-                  >
-                    {launching ? '⚙️ Affectation en cours...' : '🚀 Lancer l\'affectation'}
+                  <button onClick={handleLancer} disabled={launching || stats.choix === 0} className="action-btn" style={{ background: P.accent, color: '#fff', border: 'none', borderRadius: 11, padding: '14px 34px', fontSize: 15, fontWeight: 800 }}>
+                    {launching ? 'Affectation en cours...' : 'Lancer le moteur'}
                   </button>
                 </div>
 
-                {/* Results */}
-                {launchSuccess && launchResult && (
-                  <div>
-                    <div style={{ background: P.successBg, border: `1px solid #A7F3D0`, borderRadius: 12, padding: '16px 24px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: 22 }}>🎉</span>
-                      <div>
-                        <div style={{ color: P.success, fontSize: 15, fontWeight: 600 }}>Affectation terminée avec succès !</div>
-                        <div style={{ color: '#047857', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>{launchResult.length} groupe(s) affecté(s). Passez à l'onglet "Gérer" pour valider.</div>
-                      </div>
-                    </div>
-                    <div style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, overflow: 'hidden' }}>
-                      <div style={{ padding: '16px 24px', borderBottom: `1px solid ${P.border}` }}>
-                        <h3 style={{ margin: 0, color: P.text, fontSize: 16, fontWeight: 600 }}>Résultats générés</h3>
-                      </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ background: P.light }}>
-                            {['Groupe', 'Projet affecté', 'Statut'].map(h => (
-                              <th key={h} style={{ padding: '12px 24px', textAlign: 'left', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {launchResult.map((r, i) => (
-                            <tr key={i} className="row-hover" style={{ borderBottom: `1px solid ${P.border}` }}>
-                              <td style={{ padding: '14px 24px', color: P.text, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500 }}>{r.groupe}</td>
-                              <td style={{ padding: '14px 24px', color: P.text, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif" }}>{r.projet_affecte}</td>
-                              <td style={{ padding: '14px 24px' }}>
-                                <span style={{ background: P.warningBg, color: P.warning, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>⏳ En attente</span>
-                              </td>
-                            </tr>
+                {launchResult && (
+                  <div style={{ ...panelStyle, marginTop: 22, overflow: 'hidden', padding: 0 }}>
+                    <div style={{ padding: '16px 20px', borderBottom: `1px solid ${P.border}`, fontWeight: 800, color: P.text }}>Résultats générés</div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: P.light }}>
+                          {['Groupe', 'Projet affecté', 'Rang obtenu'].map(h => (
+                            <th key={h} style={{ textAlign: 'left', padding: '12px 20px', color: P.muted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.7 }}>{h}</th>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ══ TAB: GESTION ══ */}
-            {tab === 'gestion' && (
-              <div>
-                <h2 style={{ margin: '0 0 8px', color: P.text, fontSize: 24, fontWeight: 600 }}>Gérer les affectations</h2>
-                <p style={{ margin: '0 0 28px', color: P.muted, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif" }}>
-                  Validez ou modifiez manuellement chaque affectation.
-                </p>
-
-                {/* Messages */}
-                {actionMsg && (
-                  <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.successBg, color: P.success, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", display: 'flex', justifyContent: 'space-between' }}>
-                    ✅ {actionMsg}
-                    <button onClick={() => setActionMsg('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: P.success, fontSize: 16 }}>×</button>
-                  </div>
-                )}
-                {actionError && (
-                  <div style={{ marginBottom: 20, padding: '12px 18px', borderRadius: 10, background: P.errorBg, color: P.error, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", display: 'flex', justifyContent: 'space-between' }}>
-                    ⚠️ {actionError}
-                    <button onClick={() => setActionError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: P.error, fontSize: 16 }}>×</button>
-                  </div>
-                )}
-
-                {affectations.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '70px 0', color: P.muted, fontFamily: "Inter, system-ui, sans-serif" }}>
-                    <div style={{ fontSize: 48, marginBottom: 14 }}>📭</div>
-                    <div style={{ fontSize: 16, marginBottom: 8 }}>Aucune affectation générée</div>
-                    <div style={{ fontSize: 13, marginBottom: 24 }}>Lancez d'abord l'algorithme depuis l'onglet "Lancer l'affectation".</div>
-                    <button className="action-btn" onClick={() => setTab('affectation')} style={{ background: P.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 24px', fontSize: 14 }}>
-                      Aller à l'affectation →
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {affectations.map(aff => {
-                      const groupe = getGroupe(aff.groupe_id)
-                      const projet = getProjet(aff.projet_id)
-                      const lesChoix = getChoixGroupe(aff.groupe_id)
-                      const st = statutBadge(aff.valide)
-                      const estModifie = modifId === aff.id
-
-                      return (
-                        <div key={aff.id} style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, overflow: 'hidden' }}>
-                          {/* Card top */}
-                          <div style={{ background: P.light, padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>#{aff.id}</span>
-                              <span style={{ color: P.text, fontSize: 15, fontWeight: 600 }}>{groupe?.nom || `Groupe #${aff.groupe_id}`}</span>
-                              <span style={{ color: P.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>· {groupe?.etudiants?.length || 0} membre(s)</span>
-                            </div>
-                            <span style={{ background: st.bg, color: st.color, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600, padding: '4px 12px', borderRadius: 20 }}>
-                              {st.label}
-                            </span>
-                          </div>
-
-                          <div style={{ padding: '20px 24px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 20 }}>
-                              {/* Projet affecté */}
-                              <div>
-                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Projet affecté</p>
-                                <div style={{ background: projet ? P.light : P.errorBg, borderRadius: 8, padding: '10px 14px', borderLeft: `3px solid ${projet ? P.accent : P.error}` }}>
-                                  <div style={{ color: P.text, fontSize: 13, fontWeight: 600, fontFamily: "Inter, system-ui, sans-serif" }}>{projet?.titre || 'Aucun projet'}</div>
-                                </div>
-                              </div>
-
-                              {/* Encadrant */}
-                              <div>
-                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Encadrant</p>
-                                <div style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
-                                  {projet ? (getEncadrant(projet.encadrant_id)?.nom || '—') : '—'}
-                                </div>
-                              </div>
-
-                              {/* Choix correspondant */}
-                              <div>
-                                <p style={{ margin: '0 0 8px', color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: 1 }}>Rang du choix obtenu</p>
-                                {(() => {
-                                  const rank = lesChoix.findIndex(c => c.projet_id === aff.projet_id)
-                                  if (rank === -1) return <span style={{ color: P.warning, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>⚠️ Hors préférences</span>
-                                  const colors = ['#0891B2', '#22D3EE', '#A5F3FC']
-                                  return (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: colors[rank], display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700 }}>{rank + 1}</div>
-                                      <span style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>{rank === 0 ? '1er choix ✓' : rank === 1 ? '2ème choix' : '3ème choix'}</span>
-                                    </div>
-                                  )
-                                })()}
-                              </div>
-                            </div>
-
-                            {/* Modifier panel */}
-                            {estModifie && (
-                              <div style={{ background: '#F5F3FF', borderRadius: 10, padding: '16px 20px', marginBottom: 16, border: `1px solid ${P.border}` }}>
-                                <p style={{ margin: '0 0 10px', color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 500 }}>Choisir un nouveau projet :</p>
-                                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                                  <select
-                                    className="field-input"
-                                    value={newProjetId}
-                                    onChange={e => setNewProjetId(Number(e.target.value))}
-                                    style={{ flex: 1, padding: '10px 14px', borderRadius: 8, fontSize: 13, border: `1.5px solid ${P.border}`, color: P.text, background: '#fff' }}
-                                  >
-                                    <option value="">Sélectionner un projet...</option>
-                                    {projets.map(p => (
-                                      <option key={p.id} value={p.id}>{p.titre}</option>
-                                    ))}
-                                  </select>
-                                  <button className="action-btn" onClick={() => handleModifier(aff.id)} style={{ background: P.mid, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 500 }}>
-                                    Confirmer
-                                  </button>
-                                  <button className="action-btn" onClick={() => { setModifId(null); setNewProjetId('') }} style={{ background: '#F3F4F6', color: P.muted, border: 'none', borderRadius: 8, padding: '10px 14px', fontSize: 13 }}>
-                                    Annuler
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Actions */}
-                            <div style={{ display: 'flex', gap: 10 }}>
-                              {aff.valide !== 'validé' && (
-                                <button className="action-btn" onClick={() => handleValider(aff.id)} style={{
-                                  background: P.success, color: '#fff', border: 'none',
-                                  borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 500,
-                                }}>
-                                  ✓ Valider
-                                </button>
-                              )}
-                              <button className="action-btn" onClick={() => { setModifId(estModifie ? null : aff.id); setNewProjetId('') }} style={{
-                                background: estModifie ? '#F3F4F6' : P.light,
-                                color: estModifie ? P.muted : P.mid,
-                                border: `1px solid ${P.border}`, borderRadius: 8,
-                                padding: '9px 20px', fontSize: 13, fontWeight: 500,
-                              }}>
-                                {estModifie ? '✕ Annuler' : '✎ Modifier'}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {launchResult.map((r, i) => (
+                          <tr key={i} style={{ borderBottom: `1px solid ${P.border}` }}>
+                            <td style={tdStyle}>{r.groupe}</td>
+                            <td style={tdStyle}>{r.projet_affecte}</td>
+                            <td style={tdStyle}>{r.rang_obtenu ? `Choix ${r.rang_obtenu}` : 'Hors préférences'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -648,3 +379,50 @@ export default function CoordinateurDashboard() {
     </div>
   )
 }
+
+function StatusCard({ title, value, good, description }: { title: string; value: number; good: boolean; description: string }) {
+  return (
+    <div className="card-hover" style={panelStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div style={{ color: P.text, fontWeight: 800 }}>{title}</div>
+        <span style={{ background: good ? P.successBg : P.warningBg, color: good ? P.success : P.warning, borderRadius: 10, padding: '4px 12px', fontWeight: 800, fontSize: 20 }}>{value}</span>
+      </div>
+      <p style={{ ...mutedStyle, margin: 0 }}>{description}</p>
+    </div>
+  )
+}
+
+function Alert({ kind, text, onClose }: { kind: 'success' | 'error'; text: string; onClose: () => void }) {
+  const success = kind === 'success'
+  return (
+    <div style={{ marginBottom: 18, padding: '12px 16px', borderRadius: 10, background: success ? P.successBg : P.errorBg, color: success ? P.success : P.error, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 700 }}>
+      <span>{text}</span>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18 }}>×</button>
+    </div>
+  )
+}
+
+function Empty({ icon, title }: { icon: string; title: string }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '70px 20px', color: P.muted }}>
+      <div style={{ fontSize: 46, marginBottom: 14 }}>{icon}</div>
+      <div style={{ fontWeight: 700 }}>{title}</div>
+    </div>
+  )
+}
+
+function Avatar({ label, small = false }: { label: string; small?: boolean }) {
+  const size = small ? 28 : 36
+  return (
+    <div style={{ width: size, height: size, borderRadius: 999, background: P.accent, color: '#fff', display: 'grid', placeItems: 'center', fontSize: small ? 12 : 14, fontWeight: 800, flexShrink: 0 }}>
+      {(label?.[0] || '?').toUpperCase()}
+    </div>
+  )
+}
+
+const titleStyle = { margin: '0 0 8px', color: P.text, fontSize: 24, fontWeight: 800 }
+const sectionTitleStyle = { margin: '0 0 18px', color: P.text, fontSize: 17, fontWeight: 800 }
+const panelStyle = { background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, padding: '22px 24px', boxShadow: '0 10px 28px rgba(7,27,51,0.05)' }
+const mutedStyle = { color: P.muted, fontSize: 13, lineHeight: 1.55 }
+const labelStyle = { color: P.muted, fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: 0.9, fontWeight: 800, marginBottom: 10 }
+const tdStyle = { padding: '13px 20px', color: P.text, fontSize: 14 }

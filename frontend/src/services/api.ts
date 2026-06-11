@@ -25,6 +25,7 @@ API.interceptors.response.use(
 export const creerGroupe      = (data: any) => API.post('/groupes/', data)
 export const getGroupes       = ()          => API.get('/groupes/')
 export const getMonGroupe     = (userId: number) => API.get(`/mon-groupe/${userId}`)
+export const supprimerGroupe  = (id: number) => API.delete(`/groupes/${id}`)
 
 // ── ETUDIANTS ────────────────────────────────────
 export const getEtudiants     = ()          => API.get('/etudiants/')

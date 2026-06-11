@@ -227,6 +227,9 @@ export default function CreerGroupe() {
               </div>
             ))}
           </div>
+          <button onClick={() => { localStorage.removeItem('user'); localStorage.removeItem('access_token'); navigate('/') }} style={{ background: '#fff', border: 'none', color: P.deep, borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 700 }}>
+            Déconnexion
+          </button>
         </div>
       </header>
 

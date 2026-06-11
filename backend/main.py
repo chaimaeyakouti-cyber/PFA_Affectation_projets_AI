@@ -136,6 +136,10 @@ def ensure_same_user_or_coordinateur(user_id: int, current_user: models.Utilisat
     if current_user.id != user_id and current_user.role != "coordinateur":
         raise HTTPException(status_code=403, detail="Accès interdit")
 
+def require_role(current_user: models.Utilisateur, role: str):
+    if current_user.role != role:
+        raise HTTPException(status_code=403, detail="Accès interdit")
+
 def find_groupe_for_user(user_id: int, db: Session):
     user = db.query(models.Utilisateur).filter(models.Utilisateur.id == user_id).first()
     if not user:
@@ -187,6 +191,25 @@ def create_groupe(
 @app.get("/groupes/", response_model=list[schemas.Groupe])
 def get_groupes(db: Session = Depends(get_db)):
     return db.query(models.Groupe).all()
+
+@app.delete("/groupes/{groupe_id}")
+def delete_groupe(
+    groupe_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    require_role(current_user, "coordinateur")
+    groupe = db.query(models.Groupe).filter(models.Groupe.id == groupe_id).first()
+    if not groupe:
+        raise HTTPException(status_code=404, detail="Groupe introuvable")
+
+    db.query(models.Affectation).filter(models.Affectation.groupe_id == groupe_id).delete()
+    db.query(models.Choix).filter(models.Choix.groupe_id == groupe_id).delete()
+    db.query(models.Etudiant).filter(models.Etudiant.groupe_id == groupe_id).delete()
+    db.query(models.Utilisateur).filter(models.Utilisateur.groupe_id == groupe_id).update({"groupe_id": None})
+    db.delete(groupe)
+    db.commit()
+    return {"message": "Groupe supprimé avec succès"}
 
 @app.get("/mon-groupe/{user_id}", response_model=schemas.Groupe)
 def get_mon_groupe(
@@ -312,7 +335,11 @@ def get_mes_choix(
 
 
 @app.post("/affecter/")
-def lancer_affectation(db: Session = Depends(get_db)):
+def lancer_affectation(
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    require_role(current_user, "coordinateur")
     """
     Lance le moteur IA d'affectation.
  
@@ -439,24 +466,43 @@ def get_mon_affectation(
 
 
 @app.put("/affectations/{affectation_id}/valider")
-def valider_affectation(affectation_id: int, db: Session = Depends(get_db)):
+def valider_affectation(
+    affectation_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    require_role(current_user, "encadrant")
     affectation = db.query(models.Affectation).filter(models.Affectation.id == affectation_id).first()
     if not affectation:
         raise HTTPException(status_code=404, detail="Affectation introuvable")
+    projet = db.query(models.Projet).filter(models.Projet.id == affectation.projet_id).first()
+    if not projet or projet.encadrant_id != current_user.encadrant_id:
+        raise HTTPException(status_code=403, detail="Cette affectation ne concerne pas vos projets")
     affectation.valide = "validé"
     db.commit()
     return {"message": f"Affectation {affectation_id} validée ✅"}
 
 
 @app.put("/affectations/{affectation_id}/modifier")
-def modifier_affectation(affectation_id: int, nouveau_projet_id: int, db: Session = Depends(get_db)):
+def modifier_affectation(
+    affectation_id: int,
+    nouveau_projet_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    require_role(current_user, "encadrant")
     affectation = db.query(models.Affectation).filter(models.Affectation.id == affectation_id).first()
     if not affectation:
         raise HTTPException(status_code=404, detail="Affectation introuvable")
+    ancien_projet = db.query(models.Projet).filter(models.Projet.id == affectation.projet_id).first()
+    if ancien_projet and ancien_projet.encadrant_id != current_user.encadrant_id:
+        raise HTTPException(status_code=403, detail="Cette affectation ne concerne pas vos projets")
     
     projet = db.query(models.Projet).filter(models.Projet.id == nouveau_projet_id).first()
     if not projet:
         raise HTTPException(status_code=404, detail="Projet introuvable")
+    if projet.encadrant_id != current_user.encadrant_id:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez affecter que vos propres projets")
     affectation.projet_id = nouveau_projet_id
     affectation.valide = "modifié"
     db.commit()

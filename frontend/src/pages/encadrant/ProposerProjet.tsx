@@ -59,6 +59,12 @@ function ProposerProjet() {
           <div className="bg-[#06B6D4] rounded-full w-8 h-8 flex items-center justify-center font-bold">E</div>
           <span className="text-sm">{nomEncadrant || 'Encadrant'}</span>
         </div>
+        <button
+          onClick={() => { localStorage.removeItem('user'); localStorage.removeItem('access_token'); navigate('/') }}
+          className="bg-white text-[#071B33] px-4 py-2 rounded-lg text-sm font-semibold"
+        >
+          Déconnexion
+        </button>
       </nav>
 
       {/* Hero */}
