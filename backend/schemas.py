@@ -67,6 +67,7 @@ class ProjetCreate(BaseModel):
     titre:               str
     description:         str
     competences_requises: str
+    domaine: Optional[str] = None 
     encadrant_id:        int
 
 class Projet(ProjetCreate):

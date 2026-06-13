@@ -8,11 +8,13 @@ function ProposerProjet() {
     titre: '',
     description: '',
     competences_requises: '',
+    domaine: 'Web',
   })
   const [message, setMessage] = useState('')
   const [erreur, setErreur] = useState('')
   const [encadrantId, setEncadrantId] = useState<number | null>(null)
   const [nomEncadrant, setNomEncadrant] = useState('')
+  const DOMAINES = ['Web', 'Mobile', 'IA', 'Data', 'Cloud', 'Systèmes embarqués', 'Sécurité', 'Autre']
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -37,7 +39,8 @@ function ProposerProjet() {
       await creerProjet({ ...form, encadrant_id: encadrantId })
       setMessage('Projet proposé avec succès ✅')
       setErreur('')
-      setForm({ titre: '', description: '', competences_requises: '' })
+    
+      setForm({ titre: '', description: '', competences_requises: '', domaine: 'Web' })
     } catch {
       setErreur('Erreur lors de la création du projet.')
     }
@@ -132,12 +135,27 @@ function ProposerProjet() {
             />
           </div>
 
+            {/* Domaine */}
+          <div className="mb-6">
+           <div className="mb-6">
+  <label className="block text-sm font-semibold text-gray-700 mb-2">Domaine</label>
+  <select
+    value={form.domaine}
+    onChange={e => setForm({ ...form, domaine: e.target.value })}
+    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+  >
+    {DOMAINES.map(d => <option key={d} value={d}>{d}</option>)}
+  </select>
+</div>
+          </div>
+
           <button
             onClick={handleSubmit}
             className="w-full bg-[#0891B2] text-white py-3 rounded-xl font-semibold hover:bg-[#0B2A45] transition-all"
           >
             Soumettre le projet →
           </button>
+          
         </div>
 
         <button
