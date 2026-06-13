@@ -1,16 +1,18 @@
 import { useState } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import { loginUser, registerUser } from '../services/api'
 
 const P = {
-  deep: '#2D1B69',
-  accent: '#7C3AED',
-  light: '#EDE9FE',
-  mid: '#6B46C1',
-  border: '#DDD6FE',
+  navy: '#071B33',
+  navy2: '#0B2A45',
+  cyan: '#0891B2',
+  teal: '#0F766E',
+  soft: '#E0F2FE',
+  border: '#D8E3ED',
   error: '#DC2626',
-  muted: '#6B7280',
-  text: '#1C1033',
+  muted: '#64748B',
+  text: '#102033',
 }
 
 export default function Login() {
@@ -25,16 +27,18 @@ export default function Login() {
     setLoading(true)
     try {
       if (mode === 'register') {
-        await axios.post('http://127.0.0.1:8000/register', form)
+        await registerUser(form)
         setMode('login')
-        setErreur('Compte créé ! Connectez-vous maintenant.')
+        setErreur('Compte créé. Connectez-vous maintenant.')
       } else {
-        const res = await axios.post('http://127.0.0.1:8000/login', {
+        const res = await loginUser({
           email: form.email,
-          mot_de_passe: form.mot_de_passe
+          mot_de_passe: form.mot_de_passe,
         })
-        const user = res.data
+        const user = res.data.user ?? res.data
+        const token = res.data.access_token
         localStorage.setItem('user', JSON.stringify(user))
+        if (token) localStorage.setItem('access_token', token)
         if (user.role === 'etudiant') navigate('/etudiant')
         else if (user.role === 'encadrant') navigate('/encadrant')
         else if (user.role === 'coordinateur') navigate('/coordinateur')
@@ -45,140 +49,132 @@ export default function Login() {
       setLoading(false)
     }
   }
-
-  const handleGoogleLogin = () => {
-    const email = prompt('Entrez votre email INPT (@inpt.ac.ma) :')
-    if (!email) return
-    if (!email.endsWith('@inpt.ac.ma')) {
-      alert('Veuillez utiliser votre email INPT (@inpt.ac.ma)')
-      return
-    }
-    axios.get(`http://127.0.0.1:8000/user-by-email?email=${email}`)
-      .then(res => {
-        localStorage.setItem('user', JSON.stringify(res.data))
-        const role = res.data.role
-        if (role === 'etudiant') navigate('/etudiant')
-        else if (role === 'encadrant') navigate('/encadrant')
-        else if (role === 'coordinateur') navigate('/coordinateur')
-      })
-      .catch(() => alert('Aucun compte trouvé pour cet email. Créez un compte d\'abord.'))
-  }
-
   return (
-    <div style={{ minHeight: '100vh', background: '#F8F7FC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Crimson+Pro:wght@400;600;700&display=swap');`}</style>
+    <div style={{ minHeight: '100vh', background: '#F5F8FB', fontFamily: 'Inter, system-ui, sans-serif', display: 'grid', placeItems: 'center', padding: 24 }}>
+      <div style={{ width: '100%', maxWidth: 1080, display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', background: '#fff', border: `1px solid ${P.border}`, borderRadius: 18, overflow: 'hidden', boxShadow: '0 24px 70px rgba(7,27,51,0.12)' }}>
+        <section style={{ background: `linear-gradient(135deg, ${P.navy} 0%, ${P.navy2} 58%, ${P.cyan} 100%)`, color: '#fff', padding: '56px 52px', minHeight: 620, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 54 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(255,255,255,0.14)', display: 'grid', placeItems: 'center', fontSize: 22 }}>🎓</div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>PFA Affectation</div>
+                <div style={{ fontSize: 12, color: '#A5F3FC' }}>INPT · Plateforme académique IA</div>
+              </div>
+            </div>
 
-      <div style={{ width: '100%', maxWidth: 460, padding: '0 20px' }}>
+            <div style={{ maxWidth: 480 }}>
+              <div style={{ display: 'inline-flex', padding: '6px 12px', borderRadius: 999, background: 'rgba(6,182,212,0.16)', color: '#A5F3FC', fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 22 }}>
+                Affectation équitable des projets
+              </div>
+              <h1 style={{ margin: 0, fontSize: 44, lineHeight: 1.05, letterSpacing: -0.4, fontWeight: 800 }}>
+                Un espace clair pour piloter les choix, les conflits et les résultats.
+              </h1>
+              <p style={{ margin: '22px 0 0', color: '#D9F7FB', fontSize: 16, lineHeight: 1.7 }}>
+                Étudiants, encadrants et coordinateurs travaillent dans le même flux : groupes, projets, préférences et validation finale.
+              </p>
+            </div>
+          </div>
 
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ width: 56, height: 56, background: P.deep, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>🎓</div>
-          <h1 style={{ margin: 0, color: P.text, fontSize: 26, fontFamily: "'Crimson Pro', serif", fontWeight: 700 }}>PFA Affectation</h1>
-          <p style={{ margin: '4px 0 0', color: P.muted, fontSize: 14 }}>INPT · Plateforme de gestion de projets</p>
-        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {[
+              ['IA', 'Gale-Shapley'],
+              ['3', 'choix par groupe'],
+              ['1', 'vue coordinateur'],
+            ].map(([value, label]) => (
+              <div key={label} style={{ border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 24, fontWeight: 800 }}>{value}</div>
+                <div style={{ color: '#A5F3FC', fontSize: 12 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {/* Card */}
-        <div style={{ background: '#fff', borderRadius: 20, border: `1px solid ${P.border}`, padding: '32px 36px', boxShadow: '0 4px 24px rgba(45,27,105,0.08)' }}>
+        <section style={{ padding: '54px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ margin: '0 0 8px', color: P.text, fontSize: 28, fontWeight: 800 }}>
+              {mode === 'login' ? 'Connexion' : 'Créer un compte'}
+            </h2>
+            <p style={{ margin: 0, color: P.muted, fontSize: 14 }}>
+              Utilisez votre compte INPT pour accéder à votre espace.
+            </p>
+          </div>
 
-          {/* Tabs */}
-          <div style={{ display: 'flex', background: '#F3F4F6', borderRadius: 10, padding: 4, marginBottom: 28 }}>
+          <div style={{ display: 'flex', background: '#EEF6FA', borderRadius: 10, padding: 4, marginBottom: 24 }}>
             {(['login', 'register'] as const).map(m => (
               <button key={m} onClick={() => { setMode(m); setErreur('') }} style={{
-                flex: 1, padding: '8px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500,
+                flex: 1, padding: '10px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700,
                 background: mode === m ? '#fff' : 'transparent',
-                color: mode === m ? P.accent : P.muted,
-                boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.2s'
+                color: mode === m ? P.cyan : P.muted,
+                boxShadow: mode === m ? '0 6px 18px rgba(7,27,51,0.08)' : 'none',
               }}>
                 {m === 'login' ? 'Se connecter' : 'Créer un compte'}
               </button>
             ))}
           </div>
 
-          {/* Google Button */}
-          <button onClick={handleGoogleLogin} style={{
-            width: '100%', padding: '11px', borderRadius: 10, border: `1.5px solid ${P.border}`,
-            background: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: P.text,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20,
-          }}>
-            <img src="https://www.google.com/favicon.ico" width={18} height={18} alt="Google" />
-            Continuer avec Google (@inpt.ac.ma)
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ flex: 1, height: 1, background: P.border }} />
-            <span style={{ color: P.muted, fontSize: 12 }}>ou</span>
-            <div style={{ flex: 1, height: 1, background: P.border }} />
-          </div>
-
-          {/* Champs */}
           {mode === 'register' && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: P.text, marginBottom: 6 }}>Nom complet</label>
-              <input
-                value={form.nom}
-                onChange={e => setForm({ ...form, nom: e.target.value })}
-                placeholder="Votre nom"
-                style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${P.border}`, fontSize: 14, color: P.text, boxSizing: 'border-box' }}
-              />
-            </div>
+            <Field label="Nom complet">
+              <input value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} placeholder="Votre nom" style={inputStyle} />
+            </Field>
           )}
 
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: P.text, marginBottom: 6 }}>Email INPT</label>
-            <input
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              placeholder="nom@inpt.ac.ma"
-              style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${P.border}`, fontSize: 14, color: P.text, boxSizing: 'border-box' }}
-            />
-          </div>
+          <Field label="Email INPT">
+            <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="nom@inpt.ac.ma" style={inputStyle} />
+          </Field>
 
-          <div style={{ marginBottom: mode === 'register' ? 16 : 24 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: P.text, marginBottom: 6 }}>Mot de passe</label>
-            <input
-              type="password"
-              value={form.mot_de_passe}
-              onChange={e => setForm({ ...form, mot_de_passe: e.target.value })}
-              placeholder="••••••••"
-              style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${P.border}`, fontSize: 14, color: P.text, boxSizing: 'border-box' }}
-            />
-          </div>
+          <Field label="Mot de passe">
+            <input type="password" value={form.mot_de_passe} onChange={e => setForm({ ...form, mot_de_passe: e.target.value })} placeholder="••••••••" style={inputStyle} />
+          </Field>
 
           {mode === 'register' && (
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: P.text, marginBottom: 6 }}>Rôle</label>
-              <select
-                value={form.role}
-                onChange={e => setForm({ ...form, role: e.target.value })}
-                style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${P.border}`, fontSize: 14, color: P.text, boxSizing: 'border-box' }}
-              >
-                <option value="etudiant">🎓 Étudiant</option>
-                <option value="encadrant">👨‍🏫 Encadrant</option>
-                <option value="coordinateur">🗂️ Coordinateur</option>
+            <Field label="Rôle">
+              <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} style={inputStyle}>
+                <option value="etudiant">Étudiant</option>
+                <option value="encadrant">Encadrant</option>
+                <option value="coordinateur">Coordinateur</option>
               </select>
-            </div>
+            </Field>
           )}
 
           {erreur && (
-            <div style={{ padding: '10px 14px', borderRadius: 8, background: erreur.includes('créé') ? '#F0FDF4' : '#FEF2F2', border: `1px solid ${erreur.includes('créé') ? '#BBF7D0' : '#FECACA'}`, color: erreur.includes('créé') ? '#166534' : P.error, fontSize: 13, marginBottom: 16 }}>
+            <div style={{ padding: '12px 14px', borderRadius: 10, background: erreur.includes('Compte') ? '#ECFDF5' : '#FEF2F2', border: `1px solid ${erreur.includes('Compte') ? '#A7F3D0' : '#FECACA'}`, color: erreur.includes('Compte') ? P.teal : P.error, fontSize: 13, marginBottom: 16 }}>
               {erreur}
             </div>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            style={{
-              width: '100%', padding: '12px', borderRadius: 10, border: 'none',
-              background: P.accent, color: '#fff', fontSize: 15, fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
-            }}
-          >
+          <button onClick={handleSubmit} disabled={loading} style={{
+            width: '100%', padding: '13px', borderRadius: 10, border: 'none',
+            background: P.cyan, color: '#fff', fontSize: 15, fontWeight: 800,
+            cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+          }}>
             {loading ? 'Chargement...' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
           </button>
-        </div>
+
+          <p style={{ margin: '18px 0 0', color: P.muted, fontSize: 12, textAlign: 'center' }}>
+            La connexion Google sera activée après configuration OAuth officielle.
+          </p>
+        </section>
       </div>
     </div>
   )
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label style={{ display: 'block', marginBottom: 16 }}>
+      <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: P.text, marginBottom: 7 }}>{label}</span>
+      {children}
+    </label>
+  )
+}
+
+const inputStyle: CSSProperties = {
+  width: '100%',
+  padding: '12px 14px',
+  borderRadius: 10,
+  border: `1.5px solid ${P.border}`,
+  fontSize: 14,
+  color: P.text,
+  boxSizing: 'border-box',
+  background: '#fff',
 }

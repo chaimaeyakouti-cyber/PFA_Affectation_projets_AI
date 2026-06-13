@@ -11,7 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children, backPath, backLabel }: LayoutProps) {
   const navigate = useNavigate()
-  const { theme, toggleTheme, isDark } = useTheme()
+  const { toggleTheme, isDark } = useTheme()
   const [scrolled, setScrolled] = useState(false)
   const [user, setUser] = useState<{ nom?: string; role?: string } | null>(null)
 
@@ -26,6 +26,7 @@ export default function Layout({ children, backPath, backLabel }: LayoutProps) {
 
   const handleLogout = () => {
     localStorage.removeItem('user')
+    localStorage.removeItem('access_token')
     navigate('/')
   }
 
