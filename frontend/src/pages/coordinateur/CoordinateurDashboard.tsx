@@ -35,7 +35,25 @@ interface Projet { id: number; titre: string; description: string; encadrant_id:
 interface Choix { id: number; groupe_id: number; projet_id: number; priorite: number }
 interface Affectation { id: number; groupe_id: number; projet_id: number | null; valide: string }
 
+interface MoteurConfig {
+  poids_priorite: number
+  poids_adequation: number
+  poids_charge: number
+  interdire_double: boolean
+  respecter_capacite_max: boolean
+  ordre_soumission: boolean
+}
+
 type Tab = 'overview' | 'groupes' | 'affectation'
+
+const DEFAULT_CONFIG: MoteurConfig = {
+  poids_priorite: 0.70,
+  poids_adequation: 0.20,
+  poids_charge: 0.10,
+  interdire_double: true,
+  respecter_capacite_max: true,
+  ordre_soumission: true,
+}
 
 export default function CoordinateurDashboard() {
   const navigate = useNavigate()
@@ -48,8 +66,13 @@ export default function CoordinateurDashboard() {
   const [loading, setLoading] = useState(true)
   const [launching, setLaunching] = useState(false)
   const [launchResult, setLaunchResult] = useState<any[] | null>(null)
+  const [launchRapport, setLaunchRapport] = useState<any | null>(null)
+  const [launchConfigUtilisee, setLaunchConfigUtilisee] = useState<any | null>(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+
+  // ── Config moteur IA ────────────────────────────────────────────────
+  const [config, setConfig] = useState<MoteurConfig>(DEFAULT_CONFIG)
 
   const loadAll = async () => {
     setLoading(true)
@@ -90,13 +113,57 @@ export default function CoordinateurDashboard() {
     navigate('/')
   }
 
+  // ── Helpers config sliders α/β/γ ─────────────────────────────────────
+  // Maintient toujours poids_priorite + poids_adequation + poids_charge ≈ 1.0
+  // Quand on bouge un slider, on redistribue la différence sur les 2 autres
+  // proportionnellement à leurs valeurs actuelles.
+  const updatePoids = (key: 'poids_priorite' | 'poids_adequation' | 'poids_charge', value: number) => {
+    setConfig(prev => {
+      const clamped = Math.min(1, Math.max(0, value))
+      const others = (['poids_priorite', 'poids_adequation', 'poids_charge'] as const).filter(k => k !== key)
+      const sommeAutres = others.reduce((s, k) => s + prev[k], 0)
+      const restant = Math.max(0, 1 - clamped)
+
+      const next: MoteurConfig = { ...prev, [key]: clamped }
+      if (sommeAutres <= 0) {
+        // répartition égale si les autres sont à 0
+        next[others[0]] = restant / 2
+        next[others[1]] = restant / 2
+      } else {
+        others.forEach(k => {
+          next[k] = restant * (prev[k] / sommeAutres)
+        })
+      }
+
+      // Arrondi propre à 2 décimales pour éviter les artefacts flottants
+      next.poids_priorite   = Math.round(next.poids_priorite   * 100) / 100
+      next.poids_adequation = Math.round(next.poids_adequation * 100) / 100
+      next.poids_charge     = Math.round(next.poids_charge     * 100) / 100
+
+      // Corriger un éventuel écart d'arrondi sur le slider qu'on vient de bouger
+      const total = next.poids_priorite + next.poids_adequation + next.poids_charge
+      const ecart = Math.round((1 - total) * 100) / 100
+      if (ecart !== 0) {
+        next[others[0]] = Math.round((next[others[0]] + ecart) * 100) / 100
+      }
+
+      return next
+    })
+  }
+
+  const resetConfig = () => setConfig(DEFAULT_CONFIG)
+
+  const sommePoids = Math.round((config.poids_priorite + config.poids_adequation + config.poids_charge) * 100) / 100
+
   const handleLancer = async () => {
     setLaunching(true)
     setError('')
     setMessage('')
     try {
-      const res = await lancerAffectation()
+      const res = await lancerAffectation(config)
       setLaunchResult(res.data.affectations)
+      setLaunchRapport(res.data.rapport)
+      setLaunchConfigUtilisee(res.data.config_utilisee)
       setMessage('Affectation générée. Les encadrants peuvent maintenant valider leurs affectations.')
       await loadAll()
     } catch (e: any) {
@@ -113,7 +180,8 @@ export default function CoordinateurDashboard() {
     setError('')
     setMessage('')
     try {
-      await supprimerGroupe(groupe.id)
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+await supprimerGroupe(groupe.id, currentUser.id)
       setMessage(`Groupe "${groupe.nom}" supprimé.`)
       await loadAll()
     } catch (e: any) {
@@ -138,6 +206,11 @@ export default function CoordinateurDashboard() {
         .action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
         .card-hover { transition: all 0.18s ease; }
         .card-hover:hover { box-shadow: 0 10px 28px rgba(8,145,178,0.12); transform: translateY(-1px); }
+        .slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 999px; background: ${P.border}; outline: none; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: ${P.accent}; cursor: pointer; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+        .slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: ${P.accent}; cursor: pointer; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+        .chk-row { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px 12px; border-radius: 9px; transition: background 0.15s; }
+        .chk-row:hover { background: ${P.light}; }
       `}</style>
 
       <header style={{ background: P.deep, borderBottom: `3px solid ${P.accent}`, padding: '0 40px' }}>
@@ -337,6 +410,93 @@ export default function CoordinateurDashboard() {
                   ))}
                 </div>
 
+                {/* ── Configuration du moteur IA (α/β/γ + contraintes) ── */}
+                <div style={{ ...panelStyle, marginBottom: 22 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <h3 style={{ margin: 0, color: P.text, fontSize: 17, fontWeight: 800 }}>⚙️ Configuration du moteur</h3>
+                    <button onClick={resetConfig} className="action-btn" style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
+                      Réinitialiser
+                    </button>
+                  </div>
+                  <p style={{ ...mutedStyle, marginBottom: 20 }}>
+                    Ajustez l'importance relative de chaque critère dans le calcul du score. La somme α + β + γ doit toujours être égale à 1.
+                  </p>
+
+                  {/* Sliders α / β / γ */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 22 }}>
+                    <SliderRow
+                      label="α — Priorité du vœu"
+                      hint="Importance accordée au rang de préférence exprimé par le groupe (1er, 2e, 3e choix)."
+                      value={config.poids_priorite}
+                      onChange={v => updatePoids('poids_priorite', v)}
+                      color={P.accent}
+                    />
+                    <SliderRow
+                      label="β — Adéquation compétences"
+                      hint="Importance de la correspondance entre les stacks/filières des étudiants et les compétences requises du projet."
+                      value={config.poids_adequation}
+                      onChange={v => updatePoids('poids_adequation', v)}
+                      color="#22D3EE"
+                    />
+                    <SliderRow
+                      label="γ — Équilibrage de la charge"
+                      hint="Importance donnée à l'équilibre du nombre de groupes encadrés par chaque enseignant."
+                      value={config.poids_charge}
+                      onChange={v => updatePoids('poids_charge', v)}
+                      color="#A5F3FC"
+                      colorText={P.text}
+                    />
+                  </div>
+
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    background: Math.abs(sommePoids - 1) < 0.011 ? P.successBg : P.warningBg,
+                    borderRadius: 10, padding: '10px 16px', marginBottom: 22, fontSize: 13, fontWeight: 700,
+                    color: Math.abs(sommePoids - 1) < 0.011 ? P.success : P.warning,
+                  }}>
+                    <span>Somme α + β + γ</span>
+                    <span>{sommePoids.toFixed(2)} {Math.abs(sommePoids - 1) < 0.011 ? '✓' : '⚠️'}</span>
+                  </div>
+
+                  {/* Contraintes */}
+                  <div style={labelStyle}>Contraintes</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label className="chk-row">
+                      <input
+                        type="checkbox"
+                        checked={config.interdire_double}
+                        onChange={e => setConfig(prev => ({ ...prev, interdire_double: e.target.checked }))}
+                      />
+                      <div>
+                        <div style={{ color: P.text, fontSize: 14, fontWeight: 700 }}>Interdire les doubles affectations</div>
+                        <div style={{ color: P.muted, fontSize: 12 }}>Un groupe ne peut être affecté qu'à un seul projet.</div>
+                      </div>
+                    </label>
+                    <label className="chk-row">
+                      <input
+                        type="checkbox"
+                        checked={config.respecter_capacite_max}
+                        onChange={e => setConfig(prev => ({ ...prev, respecter_capacite_max: e.target.checked }))}
+                      />
+                      <div>
+                        <div style={{ color: P.text, fontSize: 14, fontWeight: 700 }}>Respecter la capacité max. des projets</div>
+                        <div style={{ color: P.muted, fontSize: 12 }}>Le nombre de groupes par projet ne peut pas dépasser sa capacité définie.</div>
+                      </div>
+                    </label>
+                    <label className="chk-row">
+                      <input
+                        type="checkbox"
+                        checked={config.ordre_soumission}
+                        onChange={e => setConfig(prev => ({ ...prev, ordre_soumission: e.target.checked }))}
+                      />
+                      <div>
+                        <div style={{ color: P.text, fontSize: 14, fontWeight: 700 }}>Prioriser par ordre de soumission</div>
+                        <div style={{ color: P.muted, fontSize: 12 }}>En cas d'égalité de score, favoriser les groupes ayant soumis leurs choix en premier.</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
                 <div style={{ ...panelStyle, textAlign: 'center', padding: 34 }}>
                   <div style={{ fontSize: 44, marginBottom: 12 }}>⚙️</div>
                   <h3 style={{ margin: '0 0 8px', color: P.text, fontSize: 22 }}>Moteur IA d’affectation</h3>
@@ -350,7 +510,29 @@ export default function CoordinateurDashboard() {
 
                 {launchResult && (
                   <div style={{ ...panelStyle, marginTop: 22, overflow: 'hidden', padding: 0 }}>
-                    <div style={{ padding: '16px 20px', borderBottom: `1px solid ${P.border}`, fontWeight: 800, color: P.text }}>Résultats générés</div>
+                    <div style={{ padding: '16px 20px', borderBottom: `1px solid ${P.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                      <div style={{ fontWeight: 800, color: P.text }}>Résultats générés</div>
+                      {launchRapport && (
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <Pill label="Équité" value={launchRapport.equity_score?.toFixed(2)} />
+                          <Pill label="1er vœu" value={`${launchRapport.taux_premier_voeu}%`} />
+                          <Pill
+                            label="CDC"
+                            value={launchRapport.conforme_cdc ? '✓ Conforme' : '✗ Non conforme'}
+                            tone={launchRapport.conforme_cdc ? 'success' : 'warning'}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {launchConfigUtilisee && (
+                      <div style={{ padding: '12px 20px', background: P.light, fontSize: 12, color: P.mid, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+                        <span>α (priorité) = <strong>{launchConfigUtilisee.alpha}</strong></span>
+                        <span>β (adéquation) = <strong>{launchConfigUtilisee.beta}</strong></span>
+                        <span>γ (charge) = <strong>{launchConfigUtilisee.gamma}</strong></span>
+                      </div>
+                    )}
+
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ background: P.light }}>
@@ -377,6 +559,55 @@ export default function CoordinateurDashboard() {
         )}
       </main>
     </div>
+  )
+}
+
+function SliderRow({
+  label, hint, value, onChange, color, colorText,
+}: {
+  label: string
+  hint: string
+  value: number
+  onChange: (v: number) => void
+  color: string
+  colorText?: string
+}) {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+        <span style={{ color: P.text, fontSize: 14, fontWeight: 700 }}>{label}</span>
+        <span style={{
+          background: color, color: colorText || '#fff',
+          borderRadius: 8, padding: '2px 10px', fontSize: 13, fontWeight: 800, minWidth: 52, textAlign: 'center',
+        }}>
+          {value.toFixed(2)}
+        </span>
+      </div>
+      <input
+        className="slider"
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+      />
+      <p style={{ ...mutedStyle, marginTop: 6, marginBottom: 0 }}>{hint}</p>
+    </div>
+  )
+}
+
+function Pill({ label, value, tone = 'info' }: { label: string; value: string | number; tone?: 'success' | 'warning' | 'info' }) {
+  const colors: Record<string, { bg: string; text: string }> = {
+    success: { bg: P.successBg, text: P.success },
+    warning: { bg: P.warningBg, text: P.warning },
+    info:    { bg: P.light, text: P.mid },
+  }
+  const c = colors[tone]
+  return (
+    <span style={{ background: c.bg, color: c.text, borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 800 }}>
+      {label}: {value}
+    </span>
   )
 }
 
