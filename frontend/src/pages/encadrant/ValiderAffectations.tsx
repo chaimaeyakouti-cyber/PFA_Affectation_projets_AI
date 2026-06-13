@@ -104,23 +104,17 @@ export default function ValiderAffectations() {
     return c?.priorite ?? null
   }
 
-  // Groupes éligibles à un projet (qui l'ont mis dans leurs vœux, et pas déjà affectés)
+  // Groupes éligibles à un projet : ceux qui l'ont mis en 1er, 2e ou 3e choix,
+  // sauf le groupe déjà affecté à ce projet par le moteur.
   const groupesEligibles = (projetId: number | null, groupeActuelId: number) => {
     if (!projetId) return []
-    const idsAffectes = affectations.map(a => a.groupe_id)
     const candidatIds = choix
       .filter(c => c.projet_id === projetId)
       .map(c => c.groupe_id)
     return groupes.filter(g =>
       candidatIds.includes(g.id) &&
-      g.id !== groupeActuelId &&
-      !idsAffectes.includes(g.id)
+      g.id !== groupeActuelId
     )
-  }
-
-  const groupesDisponibles = (groupeActuelId: number) => {
-    const idsAffectes = affectations.map(a => a.groupe_id)
-    return groupes.filter(g => g.id !== groupeActuelId && !idsAffectes.includes(g.id))
   }
 
   const handleValider = async (id: number) => {
@@ -204,9 +198,7 @@ export default function ValiderAffectations() {
               const adequation = groupe && projet
                 ? calculerAdequation(groupe.etudiants, projet.competences_requises)
                 : 0
-              const eligibles = groupesEligibles(aff.projet_id, aff.groupe_id)
-              const disponibles = groupesDisponibles(aff.groupe_id)
-              const candidats = eligibles.length > 0 ? eligibles : disponibles
+              const candidats = groupesEligibles(aff.projet_id, aff.groupe_id)
 
               return (
                 <div key={aff.id} style={{ background: P.card, borderRadius: 16, border: `1px solid ${P.border}`, padding: 24 }}>
@@ -285,15 +277,13 @@ export default function ValiderAffectations() {
                       <div style={{ background: '#fff', borderRadius: 18, padding: 28, width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
                         <h3 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 800, color: P.text }}>Refuser et réaffecter</h3>
                         <p style={{ color: P.muted, fontSize: 13, marginBottom: 18 }}>
-                          {eligibles.length > 0
-                            ? 'Groupes ayant choisi ce projet et encore disponibles.'
-                            : 'Aucun autre groupe n’a choisi ce projet. Les groupes libres sont proposés en alternative.'}
+                          Groupes ayant choisi ce projet en 1er, 2e ou 3e choix, sauf le groupe actuellement affecté.
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {candidats.length === 0 && (
                             <div style={{ background: P.warningBg, color: P.warning, borderRadius: 12, padding: 14, fontSize: 13, fontWeight: 700 }}>
-                              Aucun autre groupe disponible pour cette réaffectation.
+                              Aucun autre groupe n'a choisi ce projet.
                             </div>
                           )}
                           {candidats.map(g => (
