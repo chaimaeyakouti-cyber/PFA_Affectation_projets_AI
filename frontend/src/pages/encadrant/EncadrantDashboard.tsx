@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getProjets, getAffectations } from '../../services/api'
 
+const CHARGE_MAX_ENCADRANT = 5
+
 function EncadrantDashboard() {
   const navigate = useNavigate()
   const [nbProjets, setNbProjets] = useState(0)
   const [nbValides, setNbValides] = useState(0)
   const [nbAttente, setNbAttente] = useState(0)
   const [nomEncadrant, setNomEncadrant] = useState('')
+  const chargePct = Math.min(100, Math.round((nbProjets / CHARGE_MAX_ENCADRANT) * 100))
+  const chargeMaxAtteinte = nbProjets >= CHARGE_MAX_ENCADRANT
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -69,6 +73,10 @@ function EncadrantDashboard() {
             <p className="text-2xl font-bold">{nbAttente}</p>
             <p className="text-cyan-100 text-sm">En attente</p>
           </div>
+          <div>
+            <p className="text-2xl font-bold">{nbProjets}/{CHARGE_MAX_ENCADRANT}</p>
+            <p className="text-cyan-100 text-sm">Charge encadrant</p>
+          </div>
         </div>
       </div>
 
@@ -76,6 +84,30 @@ function EncadrantDashboard() {
       <div className="px-8 py-10 max-w-5xl mx-auto">
         <h2 className="text-xl font-bold text-gray-800 mb-1">Que souhaitez-vous faire ?</h2>
         <p className="text-gray-500 mb-6 text-sm">Suivez les étapes dans l'ordre pour gérer les projets.</p>
+
+        <div className="bg-white rounded-2xl shadow p-6 border border-gray-100 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h3 className="font-bold text-gray-800 text-lg">Charge d'encadrement</h3>
+              <p className="text-gray-500 text-sm">
+                La charge correspond au nombre de projets proposés par l'encadrant.
+              </p>
+            </div>
+            <span className={`text-xs px-3 py-1 rounded-full font-semibold ${chargeMaxAtteinte ? 'bg-red-50 text-red-700' : 'bg-cyan-50 text-cyan-800'}`}>
+              {chargeMaxAtteinte ? 'Charge maximale atteinte' : 'Charge disponible'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+            <span>{nbProjets} projet(s) proposé(s)</span>
+            <span>Capacité maximale : {CHARGE_MAX_ENCADRANT}</span>
+          </div>
+          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className={chargeMaxAtteinte ? 'h-full bg-red-500 rounded-full' : 'h-full bg-[#0891B2] rounded-full'}
+              style={{ width: `${chargePct}%` }}
+            />
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 

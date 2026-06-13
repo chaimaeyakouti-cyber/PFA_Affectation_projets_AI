@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { creerProjet } from '../../services/api'
+import { creerProjet, getProjets } from '../../services/api'
+
+const CHARGE_MAX_ENCADRANT = 5
 
 function ProposerProjet() {
   const navigate = useNavigate()
@@ -14,6 +16,9 @@ function ProposerProjet() {
   const [erreur, setErreur] = useState('')
   const [encadrantId, setEncadrantId] = useState<number | null>(null)
   const [nomEncadrant, setNomEncadrant] = useState('')
+  const [nbProjets, setNbProjets] = useState(0)
+  const chargeMaxAtteinte = nbProjets >= CHARGE_MAX_ENCADRANT
+  const chargePct = Math.min(100, Math.round((nbProjets / CHARGE_MAX_ENCADRANT) * 100))
   const DOMAINES = ['Web', 'Mobile', 'IA', 'Data', 'Cloud', 'Systèmes embarqués', 'Sécurité', 'Autre']
 
   useEffect(() => {
@@ -21,6 +26,10 @@ function ProposerProjet() {
     if (user?.encadrant_id) {
       setEncadrantId(user.encadrant_id)
       setNomEncadrant(user.nom)
+      getProjets().then(res => {
+        const mesProjets = res.data.filter((p: any) => p.encadrant_id === user.encadrant_id)
+        setNbProjets(mesProjets.length)
+      })
     } else {
       setErreur('Compte encadrant non lié. Recréez votre compte.')
     }
@@ -35,10 +44,15 @@ function ProposerProjet() {
       setErreur('Encadrant introuvable. Reconnectez-vous.')
       return
     }
+    if (chargeMaxAtteinte) {
+      setErreur(`Charge maximale atteinte : ${CHARGE_MAX_ENCADRANT} projets proposés.`)
+      return
+    }
     try {
       await creerProjet({ ...form, encadrant_id: encadrantId })
       setMessage('Projet proposé avec succès ✅')
       setErreur('')
+      setNbProjets(prev => prev + 1)
 
       setForm({ titre: '', description: '', competences_requises: '', domaine: 'Web' })
     } catch {
@@ -86,6 +100,24 @@ function ProposerProjet() {
           {/* Info encadrant */}
           <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-4 py-3 mb-6 text-cyan-800 text-sm">
             📋 Vous proposez ce projet en tant que <strong>{nomEncadrant}</strong>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-slate-700">Charge d'encadrement</span>
+              <span className={`text-xs px-3 py-1 rounded-full font-semibold ${chargeMaxAtteinte ? 'bg-red-50 text-red-700' : 'bg-cyan-50 text-cyan-800'}`}>
+                {nbProjets}/{CHARGE_MAX_ENCADRANT}
+              </span>
+            </div>
+            <div className="h-2 bg-white rounded-full overflow-hidden border border-slate-100">
+              <div
+                className={chargeMaxAtteinte ? 'h-full bg-red-500 rounded-full' : 'h-full bg-[#0891B2] rounded-full'}
+                style={{ width: `${chargePct}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Chaque projet proposé augmente la charge de cet encadrant.
+            </p>
           </div>
 
           {message && (
@@ -151,9 +183,10 @@ function ProposerProjet() {
 
           <button
             onClick={handleSubmit}
-            className="w-full bg-[#0891B2] text-white py-3 rounded-xl font-semibold hover:bg-[#0B2A45] transition-all"
+            disabled={chargeMaxAtteinte}
+            className={`w-full py-3 rounded-xl font-semibold transition-all ${chargeMaxAtteinte ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#0891B2] text-white hover:bg-[#0B2A45]'}`}
           >
-            Soumettre le projet →
+            {chargeMaxAtteinte ? 'Charge maximale atteinte' : 'Soumettre le projet ->'}
           </button>
 
         </div>

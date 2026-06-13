@@ -25,6 +25,7 @@ POIDS_CHARGE     = 0.10   # ÃŽÂ³ Ã¢â‚¬â€ ÃƒÂ©quilibre de la c
 
 # CapacitÃƒÂ© par dÃƒÂ©faut d'un projet (nb max de groupes simultanÃƒÂ©s)
 CAPACITE_PROJET_DEFAUT = 1
+CHARGE_MAX_ENCADRANT = 5
 
 
 # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
@@ -100,8 +101,8 @@ def score_charge(encadrant_id: Optional[int],
 
     charge_actuelle = charge_encadrants.get(encadrant_id, 0)
 
-    # PÃƒÂ©nalitÃƒÂ© linÃƒÂ©aire : 0 groupe Ã¢â€ â€™ 1.0, 5+ groupes Ã¢â€ â€™ 0.0
-    return max(0.0, 1.0 - charge_actuelle / 5.0)
+    # Penalite lineaire : plus l'encadrant a de projets/groupes, plus le score baisse.
+    return max(0.0, 1.0 - charge_actuelle / CHARGE_MAX_ENCADRANT)
 
 
 def calculer_score(priorite: int,
@@ -201,8 +202,12 @@ def affecter_projets(
     # TriÃƒÂ© par score dÃƒÂ©croissant (meilleur score en premier)
     affectations_projet: dict[int, list[tuple[float, int]]] = {}
 
-    # Compteur de charge des encadrants (mis ÃƒÂ  jour au fil de l'algo)
+    # Charge des encadrants : nombre de projets proposes.
     charge_encadrants: dict[int, int] = {}
+    for p in projets_idx.values():
+        enc_id = p.get("encadrant_id")
+        if enc_id is not None:
+            charge_encadrants[enc_id] = charge_encadrants.get(enc_id, 0) + 1
 
     # Ã¢â€â‚¬Ã¢â€â‚¬ 3. Boucle principale Gale-Shapley Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
@@ -250,9 +255,6 @@ def affecter_projets(
             # Slot disponible Ã¢â€ â€™ affectation directe
             slots.append((score, groupe_id))
             slots.sort(reverse=True)
-            # Mise ÃƒÂ  jour de la charge encadrant
-            if enc_id is not None:
-                charge_encadrants[enc_id] = charge_encadrants.get(enc_id, 0) + 1
 
         else:
             # Projet plein : comparer avec le groupe le moins bien scorÃƒÂ©
@@ -263,10 +265,6 @@ def affecter_projets(
                 slots[-1] = (score, groupe_id)
                 slots.sort(reverse=True)
 
-                # Mise ÃƒÂ  jour charge encadrant
-                if enc_id is not None:
-                    charge_encadrants[enc_id] = charge_encadrants.get(enc_id, 0)
-                    # +1 entrant dÃƒÂ©jÃƒÂ  comptabilisÃƒÂ©, -0 (mÃƒÂªme projet)
 
                 # Le groupe ÃƒÂ©vincÃƒÂ© retourne dans la file d'attente
                 groupes_libres.append(groupe_evince)
