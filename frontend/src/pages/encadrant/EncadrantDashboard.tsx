@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getProjets, getAffectations } from '../../services/api'
+import { getProjets, getAffectations, getGroupes } from '../../services/api'
 
 const CHARGE_MAX_ENCADRANT = 5
+const STATUTS_FINAUX = ['validé', 'modifié']
 
 function EncadrantDashboard() {
   const navigate = useNavigate()
@@ -11,6 +12,8 @@ function EncadrantDashboard() {
   const [nbAttente, setNbAttente] = useState(0)
   const [nomEncadrant, setNomEncadrant] = useState('')
   const [mesProjets, setMesProjets] = useState<any[]>([])
+  const [groupes, setGroupes] = useState<any[]>([])
+  const [resultatsFinaux, setResultatsFinaux] = useState<any[]>([])
   const chargePct = Math.min(100, Math.round((nbProjets / CHARGE_MAX_ENCADRANT) * 100))
   const chargeMaxAtteinte = nbProjets >= CHARGE_MAX_ENCADRANT
 
@@ -18,15 +21,17 @@ function EncadrantDashboard() {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (user?.nom) setNomEncadrant(user.nom)
 
-    Promise.all([getProjets(), getAffectations()]).then(([projRes, affRes]) => {
+    Promise.all([getProjets(), getAffectations(), getGroupes()]).then(([projRes, affRes, groupesRes]) => {
       const mesProjets = projRes.data.filter((p: any) => p.encadrant_id === user.encadrant_id)
       setMesProjets(mesProjets)
+      setGroupes(groupesRes.data)
       setNbProjets(mesProjets.length)
 
       const mesProjetsIds = mesProjets.map((p: any) => p.id)
       const mesAffectations = affRes.data.filter((a: any) => mesProjetsIds.includes(a.projet_id))
+      setResultatsFinaux(mesAffectations.filter((a: any) => STATUTS_FINAUX.includes(a.valide)))
 
-      setNbValides(mesAffectations.filter((a: any) => a.valide === 'validé').length)
+      setNbValides(mesAffectations.filter((a: any) => STATUTS_FINAUX.includes(a.valide)).length)
       setNbAttente(mesAffectations.filter((a: any) => a.valide === 'en_attente').length)
     })
   }, [])
@@ -154,6 +159,58 @@ function EncadrantDashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl shadow p-6 border border-gray-100 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h3 className="font-bold text-gray-800 text-lg">Résultats finaux validés</h3>
+              <p className="text-gray-500 text-sm">
+                Affectations confirmées après validation ou réaffectation par l'encadrant.
+              </p>
+            </div>
+            <span className="bg-emerald-50 text-emerald-700 text-xs px-3 py-1 rounded-full font-semibold">
+              {resultatsFinaux.length} résultat(s)
+            </span>
+          </div>
+
+          {resultatsFinaux.length === 0 ? (
+            <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-6 text-center">
+              <p className="font-semibold text-slate-700">Aucun résultat final pour le moment.</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Les résultats apparaîtront ici après validation des affectations.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+                  <tr>
+                    <th className="text-left px-4 py-3">Groupe</th>
+                    <th className="text-left px-4 py-3">Projet affecté</th>
+                    <th className="text-left px-4 py-3">Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultatsFinaux.map((aff: any) => {
+                    const projet = mesProjets.find((p: any) => p.id === aff.projet_id)
+                    const groupe = groupes.find((g: any) => g.id === aff.groupe_id)
+                    return (
+                      <tr key={aff.id} className="border-t border-slate-100">
+                        <td className="px-4 py-3 font-semibold text-slate-900">{groupe?.nom || `Groupe #${aff.groupe_id}`}</td>
+                        <td className="px-4 py-3 text-slate-700">{projet?.titre || `Projet #${aff.projet_id}`}</td>
+                        <td className="px-4 py-3">
+                          <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold">
+                            {aff.valide === 'modifié' ? 'Réaffectée' : 'Validée'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

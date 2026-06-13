@@ -54,6 +54,7 @@ interface MoteurConfig {
 }
 
 type Tab = 'overview' | 'groupes' | 'affectation'
+const STATUTS_FINAUX = ['validé', 'modifié']
 
 const splitSkills = (value?: string) =>
   value ? value.split(',').map(skill => skill.trim()).filter(Boolean) : []
@@ -107,14 +108,17 @@ export default function CoordinateurDashboard() {
   useEffect(() => { loadAll() }, [])
 
   const getProjet = (id: number | null) => id ? projets.find(p => p.id === id) : null
+  const getGroupe = (id: number) => groupes.find(g => g.id === id)
+  const getEncadrant = (id?: number) => id ? encadrants.find(e => e.id === id) : null
   const getChoixGroupe = (gid: number) => choix.filter(c => c.groupe_id === gid).sort((a, b) => a.priorite - b.priorite)
+  const resultatsFinaux = affectations.filter(a => STATUTS_FINAUX.includes(a.valide))
 
   const stats = {
     groupes: groupes.length,
     projets: projets.length,
     choix: choix.length,
     affectes: affectations.length,
-    valides: affectations.filter(a => a.valide === 'validé').length,
+    valides: resultatsFinaux.length,
     enAttente: affectations.filter(a => a.valide === 'en_attente').length,
     sansChoix: groupes.filter(g => getChoixGroupe(g.id).length === 0).length,
   }
@@ -357,6 +361,55 @@ export default function CoordinateurDashboard() {
                         )
                       })}
                     </div>
+                  )}
+                </div>
+
+                <div style={{ ...panelStyle, marginTop: 22 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18 }}>
+                    <div>
+                      <h3 style={{ ...sectionTitleStyle, marginBottom: 4 }}>Résultats finaux validés</h3>
+                      <p style={{ ...mutedStyle, margin: 0 }}>
+                        Affectations confirmées par les encadrants après validation ou réaffectation.
+                      </p>
+                    </div>
+                    <span style={{ background: P.successBg, color: P.success, borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 800 }}>
+                      {resultatsFinaux.length} résultat(s)
+                    </span>
+                  </div>
+
+                  {resultatsFinaux.length === 0 ? (
+                    <div style={{ background: P.light, borderRadius: 10, padding: 18, color: P.muted, fontSize: 13 }}>
+                      Aucun résultat final n'est encore disponible. Les affectations apparaîtront ici après validation par les encadrants.
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: P.light }}>
+                          {['Groupe', 'Projet final', 'Encadrant', 'Statut'].map(h => (
+                            <th key={h} style={{ textAlign: 'left', padding: '12px 14px', color: P.muted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.7 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {resultatsFinaux.map(aff => {
+                          const projet = getProjet(aff.projet_id)
+                          const groupe = getGroupe(aff.groupe_id)
+                          const encadrant = getEncadrant(projet?.encadrant_id)
+                          return (
+                            <tr key={aff.id} style={{ borderBottom: `1px solid ${P.border}` }}>
+                              <td style={tdStyle}>{groupe?.nom || `Groupe #${aff.groupe_id}`}</td>
+                              <td style={tdStyle}>{projet?.titre || `Projet #${aff.projet_id}`}</td>
+                              <td style={tdStyle}>{encadrant?.nom || 'Non renseigné'}</td>
+                              <td style={tdStyle}>
+                                <span style={{ background: P.successBg, color: P.success, borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 800 }}>
+                                  {aff.valide === 'modifié' ? 'Réaffectée' : 'Validée'}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   )}
                 </div>
               </div>
