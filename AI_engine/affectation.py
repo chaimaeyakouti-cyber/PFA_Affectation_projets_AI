@@ -1,43 +1,43 @@
 """
-MiniProj-AI — Moteur d'affectation intelligent
+MiniProj-AI Ã¢â‚¬â€ Moteur d'affectation intelligent
 ================================================
-Conforme au Cahier des Charges v1.0 — section 4.4
+Conforme au Cahier des Charges v1.0 Ã¢â‚¬â€ section 4.4
 
 L'algorithme combine :
-1. Scoring pondéré  : quantifie l'adéquation groupe ↔ projet
-2. Gale-Shapley     : résolution stable des conflits (Stable Matching)
-3. Score d'équité   : mesure la satisfaction globale [0..1]
+1. Scoring pondÃƒÂ©rÃƒÂ©  : quantifie l'adÃƒÂ©quation groupe Ã¢â€ â€ projet
+2. Gale-Shapley     : rÃƒÂ©solution stable des conflits (Stable Matching)
+3. Score d'ÃƒÂ©quitÃƒÂ©   : mesure la satisfaction globale [0..1]
 
-Entrée  : liste de choix  [{ groupe_id, projet_id, priorite }]
-Sortie  : dict            { groupe_id → projet_id | None }
+EntrÃƒÂ©e  : liste de choix  [{ groupe_id, projet_id, priorite }]
+Sortie  : dict            { groupe_id Ã¢â€ â€™ projet_id | None }
           + rapport       { equity_score, satisfactions, non_affectes }
 """
 
-from typing import Optional
+from typing import Optional, Dict
 
 
-# ─────────────────────────────────────────────
-# PONDÉRATIONS (ajustables par le coordinateur)
-# ─────────────────────────────────────────────
-POIDS_PRIORITE   = 0.70   # α — importance du rang de préférence
-POIDS_ADEQUATION = 0.20   # β — adéquation compétences / projet
-POIDS_CHARGE     = 0.10   # γ — équilibre de la charge encadrant
+# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+# PONDÃƒâ€°RATIONS PAR DÃƒâ€°FAUT (ajustables via API)
+# Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+POIDS_PRIORITE   = 0.70   # ÃŽÂ± Ã¢â‚¬â€ importance du rang de prÃƒÂ©fÃƒÂ©rence
+POIDS_ADEQUATION = 0.20   # ÃŽÂ² Ã¢â‚¬â€ adÃƒÂ©quation compÃƒÂ©tences / projet
+POIDS_CHARGE     = 0.10   # ÃŽÂ³ Ã¢â‚¬â€ ÃƒÂ©quilibre de la charge encadrant
 
-# Capacité par défaut d'un projet (nb max de groupes simultanés)
+# CapacitÃƒÂ© par dÃƒÂ©faut d'un projet (nb max de groupes simultanÃƒÂ©s)
 CAPACITE_PROJET_DEFAUT = 1
 
 
-# ═════════════════════════════════════════════
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 # FONCTIONS UTILITAIRES
-# ═════════════════════════════════════════════
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 def score_priorite(priorite: int) -> float:
     """
-    Transforme un rang (1, 2, 3) en score décroissant.
-    Rang 1 (meilleur choix) → 1.0
-    Rang 2                  → 0.67
-    Rang 3                  → 0.33
-    Non choisi              → 0.0
+    Transforme un rang (1, 2, 3) en score dÃƒÂ©croissant.
+    Rang 1 (meilleur choix) Ã¢â€ â€™ 1.0
+    Rang 2                  Ã¢â€ â€™ 0.67
+    Rang 3                  Ã¢â€ â€™ 0.33
+    Non choisi              Ã¢â€ â€™ 0.0
     """
     if priorite == 1:
         return 1.0
@@ -49,52 +49,58 @@ def score_priorite(priorite: int) -> float:
 
 
 def score_adequation(filiere_groupe: Optional[str],
-                     competences_projet: Optional[str]) -> float:
+                     competences_projet: Optional[str],
+                     stacks_groupe: Optional[str] = None) -> float:
     """
-    Mesure l'adéquation entre la filière du groupe et les
-    compétences requises par le projet.
+    Mesure l'adÃƒÂ©quation entre le profil du groupe et les
+    compÃƒÂ©tences requises par le projet.
 
-    Logique simple mais extensible :
-    - Cherche des mots-clés communs entre filière et compétences
-    - Retourne un score entre 0.0 et 1.0
-    - Si aucune info disponible → score neutre 0.5
+    Utilise en prioritÃƒÂ© les stacks rÃƒÂ©els des ÃƒÂ©tudiants,
+    puis la filiÃƒÂ¨re comme fallback.
+    Retourne un score Jaccard entre 0.0 et 1.0.
     """
-    if not filiere_groupe or not competences_projet:
-        return 0.5  # pas d'info → neutre
+    # Combiner filiÃƒÂ¨re + stacks pour un profil complet
+    profil_parts = []
+    if filiere_groupe:
+        profil_parts.append(filiere_groupe)
+    if stacks_groupe:
+        profil_parts.append(stacks_groupe)
 
-    mots_filiere = set(filiere_groupe.lower().replace(",", " ").split())
-    mots_projet  = set(competences_projet.lower().replace(",", " ").split())
+    profil = " ".join(profil_parts)
 
-    # Mots fonctionnels à ignorer
+    if not profil or not competences_projet:
+        return 0.5  # pas d'info Ã¢â€ â€™ neutre
+
     stop_words = {"de", "la", "le", "les", "et", "en", "un", "une",
-                  "des", "du", "ou", "avec", "pour", "sur", "dans"}
-    mots_filiere -= stop_words
-    mots_projet  -= stop_words
+                  "des", "du", "ou", "avec", "pour", "sur", "dans",
+                  "the", "and", "or", "of", "with", "for"}
 
-    if not mots_filiere or not mots_projet:
+    mots_profil = set(profil.lower().replace(",", " ").split()) - stop_words
+    mots_projet = set(competences_projet.lower().replace(",", " ").split()) - stop_words
+
+    if not mots_profil or not mots_projet:
         return 0.5
 
-    communs = mots_filiere & mots_projet
-    union   = mots_filiere | mots_projet
+    communs = mots_profil & mots_projet
+    union   = mots_profil | mots_projet
 
-    # Coefficient de Jaccard
     return len(communs) / len(union)
 
 
 def score_charge(encadrant_id: Optional[int],
                  charge_encadrants: dict) -> float:
     """
-    Pénalise les projets dont l'encadrant encadre déjà beaucoup de groupes.
-    Plus la charge est élevée, plus le score est bas.
+    PÃƒÂ©nalise les projets dont l'encadrant encadre dÃƒÂ©jÃƒÂ  beaucoup de groupes.
+    Plus la charge est ÃƒÂ©levÃƒÂ©e, plus le score est bas.
 
-    charge_encadrants : { encadrant_id → nb_groupes_déjà_affectés }
+    charge_encadrants : { encadrant_id Ã¢â€ â€™ nb_groupes_dÃƒÂ©jÃƒÂ _affectÃƒÂ©s }
     """
     if encadrant_id is None:
         return 1.0
 
     charge_actuelle = charge_encadrants.get(encadrant_id, 0)
 
-    # Pénalité linéaire : 0 groupe → 1.0, 5+ groupes → 0.0
+    # PÃƒÂ©nalitÃƒÂ© linÃƒÂ©aire : 0 groupe Ã¢â€ â€™ 1.0, 5+ groupes Ã¢â€ â€™ 0.0
     return max(0.0, 1.0 - charge_actuelle / 5.0)
 
 
@@ -102,67 +108,54 @@ def calculer_score(priorite: int,
                    filiere_groupe: Optional[str],
                    competences_projet: Optional[str],
                    encadrant_id: Optional[int],
-                   charge_encadrants: dict) -> float:
+                   charge_encadrants: dict,
+                   stacks_groupe: Optional[str] = None,
+                   poids: Optional[Dict[str, float]] = None) -> float:
     """
-    Score composite pondéré :
-    score = α·priorité + β·adéquation + γ·charge
+    Score composite pondÃƒÂ©rÃƒÂ© :
+    score = ÃŽÂ±Ã‚Â·prioritÃƒÂ© + ÃŽÂ²Ã‚Â·adÃƒÂ©quation + ÃŽÂ³Ã‚Â·charge
+
+    poids optionnel : {"priorite": 0.70, "adequation": 0.20, "charge": 0.10}
     """
+    alpha = poids["priorite"]  if poids else POIDS_PRIORITE
+    beta  = poids["adequation"] if poids else POIDS_ADEQUATION
+    gamma = poids["charge"]    if poids else POIDS_CHARGE
+
     s_prio  = score_priorite(priorite)
-    s_adeq  = score_adequation(filiere_groupe, competences_projet)
+    s_adeq  = score_adequation(filiere_groupe, competences_projet, stacks_groupe)
     s_charg = score_charge(encadrant_id, charge_encadrants)
 
-    return (POIDS_PRIORITE   * s_prio
-          + POIDS_ADEQUATION * s_adeq
-          + POIDS_CHARGE     * s_charg)
+    return alpha * s_prio + beta * s_adeq + gamma * s_charg
 
 
-# ═════════════════════════════════════════════
-# MOTEUR PRINCIPAL : GALE-SHAPLEY MODIFIÉ
-# ═════════════════════════════════════════════
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# MOTEUR PRINCIPAL : GALE-SHAPLEY MODIFIÃƒâ€°
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 def affecter_projets(
     choix_list: list[dict],
     projets_info: Optional[list[dict]]   = None,
     groupes_info: Optional[list[dict]]   = None,
     capacite_projets: Optional[dict]     = None,
+    poids_override: Optional[Dict[str, float]] = None,
 ) -> dict:
     """
     Algorithme principal d'affectation.
 
-    Paramètres
-    ----------
-    choix_list : list[dict]
-        Chaque dict contient : groupe_id, projet_id, priorite (1-3)
-
-    projets_info : list[dict] | None
-        Enrichissement optionnel : [{ id, competences_requises, encadrant_id }]
-        Si None → scoring simplifié sans adéquation ni charge.
-
-    groupes_info : list[dict] | None
-        Enrichissement optionnel : [{ id, etudiants: [{ filiere }] }]
-        Si None → pas de scoring par filière.
-
-    capacite_projets : dict | None
-        { projet_id → nb_max_groupes }
-        Si None → chaque projet accepte 1 groupe (défaut CDC).
-
-    Retourne
-    --------
-    dict  { groupe_id → projet_id | None }
-
-    Effets de bord : imprime le rapport d'équité en console.
+    groupes_info : [{ id, etudiants: [{ filiere, stacks }] }]
+    poids_override : {"priorite": 0.70, "adequation": 0.20, "charge": 0.10}
     """
 
-    # ── 0. Normalisation des entrées ──────────────────────────────────────
+    # Ã¢â€â‚¬Ã¢â€â‚¬ 0. Normalisation Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-    # Index projet_id → info projet
     projets_idx: dict = {}
     if projets_info:
         for p in projets_info:
             projets_idx[p["id"]] = p
 
-    # Index groupe_id → compétences déclarées + filières du groupe
-    competences_groupes_idx: dict = {}
+    # Index groupe_id -> profil complet (competences declarees + filieres + stacks)
+    filieres_idx: dict = {}
+    stacks_idx: dict = {}
     if groupes_info:
         for g in groupes_info:
             morceaux = []
@@ -171,16 +164,18 @@ def affecter_projets(
             if g.get("etudiants"):
                 filieres = [e.get("filiere", "") for e in g["etudiants"] if e.get("filiere")]
                 morceaux.extend(filieres)
+                stacks = [e.get("stacks", "") for e in g["etudiants"] if e.get("stacks")]
+                if stacks:
+                    stacks_idx[g["id"]] = " ".join(stacks)
             if morceaux:
-                competences_groupes_idx[g["id"]] = " ".join(morceaux)
+                filieres_idx[g["id"]] = " ".join(morceaux)
 
-    # Capacité des projets
     caps = capacite_projets or {}
 
-    # ── 1. Construction des préférences ordonnées par groupe ──────────────
+    # Ã¢â€â‚¬Ã¢â€â‚¬ 1. Construction des prÃƒÂ©fÃƒÂ©rences ordonnÃƒÂ©es par groupe Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     #
-    # preferences[groupe_id] = liste ordonnée de (projet_id, priorite)
-    # triée par priorité croissante (1 = meilleur)
+    # preferences[groupe_id] = liste ordonnÃƒÂ©e de (projet_id, priorite)
+    # triÃƒÂ©e par prioritÃƒÂ© croissante (1 = meilleur)
 
     preferences: dict[int, list[tuple[int, int]]] = {}
     for c in choix_list:
@@ -193,23 +188,23 @@ def affecter_projets(
     for gid in preferences:
         preferences[gid].sort(key=lambda x: x[1])
 
-    # ── 2. Initialisation de l'algorithme ─────────────────────────────────
+    # Ã¢â€â‚¬Ã¢â€â‚¬ 2. Initialisation de l'algorithme Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     # Groupes encore en attente d'affectation
     groupes_libres: list[int] = list(preferences.keys())
 
-    # Pointeur dans la liste de préférences de chaque groupe
-    # (à quel rang on en est pour ce groupe)
+    # Pointeur dans la liste de prÃƒÂ©fÃƒÂ©rences de chaque groupe
+    # (ÃƒÂ  quel rang on en est pour ce groupe)
     index_courant: dict[int, int] = {gid: 0 for gid in groupes_libres}
 
-    # État courant d'un projet : { projet_id → [(score, groupe_id)] }
-    # Trié par score décroissant (meilleur score en premier)
+    # Ãƒâ€°tat courant d'un projet : { projet_id Ã¢â€ â€™ [(score, groupe_id)] }
+    # TriÃƒÂ© par score dÃƒÂ©croissant (meilleur score en premier)
     affectations_projet: dict[int, list[tuple[float, int]]] = {}
 
-    # Compteur de charge des encadrants (mis à jour au fil de l'algo)
+    # Compteur de charge des encadrants (mis ÃƒÂ  jour au fil de l'algo)
     charge_encadrants: dict[int, int] = {}
 
-    # ── 3. Boucle principale Gale-Shapley ─────────────────────────────────
+    # Ã¢â€â‚¬Ã¢â€â‚¬ 3. Boucle principale Gale-Shapley Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     iterations = 0
     max_iterations = len(groupes_libres) * 10  # garde-fou anti-boucle infinie
@@ -222,7 +217,7 @@ def affecter_projets(
         prefs_groupe = preferences.get(groupe_id, [])
 
         if idx >= len(prefs_groupe):
-            # Ce groupe a épuisé toutes ses préférences → pas d'affectation
+            # Ce groupe a ÃƒÂ©puisÃƒÂ© toutes ses prÃƒÂ©fÃƒÂ©rences Ã¢â€ â€™ pas d'affectation
             continue
 
         projet_id, priorite = prefs_groupe[idx]
@@ -230,67 +225,70 @@ def affecter_projets(
 
         # Calcul du score composite pour ce couple (groupe, projet)
         p_info    = projets_idx.get(projet_id, {})
-        filiere   = competences_groupes_idx.get(groupe_id)
+        filiere   = filieres_idx.get(groupe_id)
+        stacks    = stacks_idx.get(groupe_id)
         comp_req  = p_info.get("competences_requises")
         enc_id    = p_info.get("encadrant_id")
 
         score = calculer_score(
-            priorite        = priorite,
-            filiere_groupe  = filiere,
+            priorite           = priorite,
+            filiere_groupe     = filiere,
             competences_projet = comp_req,
-            encadrant_id    = enc_id,
-            charge_encadrants = charge_encadrants,
+            encadrant_id       = enc_id,
+            charge_encadrants  = charge_encadrants,
+            stacks_groupe      = stacks,
+            poids              = poids_override,
         )
 
-        # Capacité maximale du projet
+        # CapacitÃƒÂ© maximale du projet
         cap = caps.get(projet_id, CAPACITE_PROJET_DEFAUT)
 
         affectations_projet.setdefault(projet_id, [])
         slots = affectations_projet[projet_id]
 
         if len(slots) < cap:
-            # Slot disponible → affectation directe
+            # Slot disponible Ã¢â€ â€™ affectation directe
             slots.append((score, groupe_id))
             slots.sort(reverse=True)
-            # Mise à jour de la charge encadrant
+            # Mise ÃƒÂ  jour de la charge encadrant
             if enc_id is not None:
                 charge_encadrants[enc_id] = charge_encadrants.get(enc_id, 0) + 1
 
         else:
-            # Projet plein : comparer avec le groupe le moins bien scoré
+            # Projet plein : comparer avec le groupe le moins bien scorÃƒÂ©
             score_min, groupe_evince = slots[-1]
 
             if score > score_min:
-                # Ce groupe déplace le moins bien scoré
+                # Ce groupe dÃƒÂ©place le moins bien scorÃƒÂ©
                 slots[-1] = (score, groupe_id)
                 slots.sort(reverse=True)
 
-                # Mise à jour charge encadrant
+                # Mise ÃƒÂ  jour charge encadrant
                 if enc_id is not None:
                     charge_encadrants[enc_id] = charge_encadrants.get(enc_id, 0)
-                    # +1 entrant déjà comptabilisé, -0 (même projet)
+                    # +1 entrant dÃƒÂ©jÃƒÂ  comptabilisÃƒÂ©, -0 (mÃƒÂªme projet)
 
-                # Le groupe évincé retourne dans la file d'attente
+                # Le groupe ÃƒÂ©vincÃƒÂ© retourne dans la file d'attente
                 groupes_libres.append(groupe_evince)
             else:
-                # Ce groupe n'est pas retenu → essaie son choix suivant
+                # Ce groupe n'est pas retenu Ã¢â€ â€™ essaie son choix suivant
                 groupes_libres.append(groupe_id)
 
-    # ── 4. Construction du résultat final ─────────────────────────────────
+    # Ã¢â€â‚¬Ã¢â€â‚¬ 4. Construction du rÃƒÂ©sultat final Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-    # Inversion : projet → groupes_affectés ⟹ groupe → projet
+    # Inversion : projet Ã¢â€ â€™ groupes_affectÃƒÂ©s Ã¢Å¸Â¹ groupe Ã¢â€ â€™ projet
     resultat: dict[int, Optional[int]] = {}
 
     for projet_id, slots in affectations_projet.items():
         for (_, groupe_id) in slots:
             resultat[groupe_id] = projet_id
 
-    # Groupes sans affectation (ont épuisé leurs choix)
+    # Groupes sans affectation (ont ÃƒÂ©puisÃƒÂ© leurs choix)
     for gid in preferences:
         if gid not in resultat:
             resultat[gid] = None
 
-    # ── 5. Rapport d'équité ───────────────────────────────────────────────
+    # Ã¢â€â‚¬Ã¢â€â‚¬ 5. Rapport d'ÃƒÂ©quitÃƒÂ© Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     rapport = _generer_rapport(resultat, preferences)
     _afficher_rapport(rapport)
@@ -298,25 +296,25 @@ def affecter_projets(
     return resultat
 
 
-# ═════════════════════════════════════════════
-# RAPPORT D'ÉQUITÉ (section 4.4 CDC)
-# ═════════════════════════════════════════════
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# RAPPORT D'Ãƒâ€°QUITÃƒâ€° (section 4.4 CDC)
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 def _generer_rapport(
     resultat: dict[int, Optional[int]],
     preferences: dict[int, list[tuple[int, int]]],
 ) -> dict:
     """
-    Calcule le score d'équité global et les statistiques de satisfaction.
+    Calcule le score d'ÃƒÂ©quitÃƒÂ© global et les statistiques de satisfaction.
 
-    Score d'équité :
-        equity = Σ (4 - rang_obtenu) / (3 × nb_groupes_affectés)
+    Score d'ÃƒÂ©quitÃƒÂ© :
+        equity = ÃŽÂ£ (4 - rang_obtenu) / (3 Ãƒâ€” nb_groupes_affectÃƒÂ©s)
 
-    Interprétation :
-        1.0 → tous les groupes ont obtenu leur 1er choix
-        0.67 → tous ont obtenu leur 2e choix
-        0.33 → tous ont obtenu leur 3e choix
-        0.0  → personne n'a obtenu de choix listés (affectations hors préférences)
+    InterprÃƒÂ©tation :
+        1.0 Ã¢â€ â€™ tous les groupes ont obtenu leur 1er choix
+        0.67 Ã¢â€ â€™ tous ont obtenu leur 2e choix
+        0.33 Ã¢â€ â€™ tous ont obtenu leur 3e choix
+        0.0  Ã¢â€ â€™ personne n'a obtenu de choix listÃƒÂ©s (affectations hors prÃƒÂ©fÃƒÂ©rences)
     """
     satisfactions = {1: 0, 2: 0, 3: 0, "hors_pref": 0, "non_affecte": 0}
     total_affectes = 0
@@ -329,7 +327,7 @@ def _generer_rapport(
 
         total_affectes += 1
 
-        # Chercher le rang dans les préférences de ce groupe
+        # Chercher le rang dans les prÃƒÂ©fÃƒÂ©rences de ce groupe
         rang_obtenu = None
         for (pid, priorite) in preferences.get(groupe_id, []):
             if pid == projet_id:
@@ -338,15 +336,15 @@ def _generer_rapport(
 
         if rang_obtenu is not None:
             satisfactions[rang_obtenu] = satisfactions.get(rang_obtenu, 0) + 1
-            somme_equity += (4 - rang_obtenu)  # rang 1 → +3, rang 2 → +2, rang 3 → +1
+            somme_equity += (4 - rang_obtenu)  # rang 1 Ã¢â€ â€™ +3, rang 2 Ã¢â€ â€™ +2, rang 3 Ã¢â€ â€™ +1
         else:
             satisfactions["hors_pref"] += 1
-            # Affecté hors préférences → contribute 0 à l'équité
+            # AffectÃƒÂ© hors prÃƒÂ©fÃƒÂ©rences Ã¢â€ â€™ contribute 0 ÃƒÂ  l'ÃƒÂ©quitÃƒÂ©
 
     nb_total = len(resultat)
     equity_score = (somme_equity / (3 * total_affectes)) if total_affectes > 0 else 0.0
 
-    # Taux de satisfaction des 1ers vœux (critère d'acceptation CDC : ≥ 60%)
+    # Taux de satisfaction des 1ers vÃ…â€œux (critÃƒÂ¨re d'acceptation CDC : Ã¢â€°Â¥ 60%)
     taux_premier_voeu = (
         satisfactions[1] / nb_total * 100 if nb_total > 0 else 0.0
     )
@@ -358,55 +356,50 @@ def _generer_rapport(
         "nb_groupes_total":   nb_total,
         "nb_affectes":        total_affectes,
         "nb_non_affectes":    satisfactions["non_affecte"],
-        "conforme_cdc":       taux_premier_voeu >= 60.0,  # critère CDC §12
+        "conforme_cdc":       taux_premier_voeu >= 60.0,  # critÃƒÂ¨re CDC Ã‚Â§12
     }
 
 
 def _afficher_rapport(rapport: dict) -> None:
-    """Affiche le rapport d'équité en console (mode debug)."""
-    print("\n" + "═" * 52)
-    print("   RAPPORT D'ÉQUITÉ — MiniProj-AI Moteur IA")
-    print("═" * 52)
-    print(f"  Score d'équité global   : {rapport['equity_score']:.4f} / 1.0")
-    print(f"  Taux 1er vœu satisfait  : {rapport['taux_premier_voeu']}%")
-    print(f"  Conforme CDC (≥60%)     : {'✓ OUI' if rapport['conforme_cdc'] else '✗ NON'}")
+    """Affiche le rapport d'ÃƒÂ©quitÃƒÂ© en console (mode debug)."""
+    print("\n" + "Ã¢â€¢Â" * 52)
+    print("   RAPPORT D'Ãƒâ€°QUITÃƒâ€° Ã¢â‚¬â€ MiniProj-AI Moteur IA")
+    print("Ã¢â€¢Â" * 52)
+    print(f"  Score d'ÃƒÂ©quitÃƒÂ© global   : {rapport['equity_score']:.4f} / 1.0")
+    print(f"  Taux 1er vÃ…â€œu satisfait  : {rapport['taux_premier_voeu']}%")
+    print(f"  Conforme CDC (Ã¢â€°Â¥60%)     : {'Ã¢Å“â€œ OUI' if rapport['conforme_cdc'] else 'Ã¢Å“â€” NON'}")
     print(f"  Groupes total           : {rapport['nb_groupes_total']}")
-    print(f"  Groupes affectés        : {rapport['nb_affectes']}")
-    print(f"  Groupes non affectés    : {rapport['nb_non_affectes']}")
+    print(f"  Groupes affectÃƒÂ©s        : {rapport['nb_affectes']}")
+    print(f"  Groupes non affectÃƒÂ©s    : {rapport['nb_non_affectes']}")
     s = rapport["satisfactions"]
-    print(f"  ├─ 1er choix obtenu     : {s.get(1, 0)} groupe(s)")
-    print(f"  ├─ 2e  choix obtenu     : {s.get(2, 0)} groupe(s)")
-    print(f"  ├─ 3e  choix obtenu     : {s.get(3, 0)} groupe(s)")
-    print(f"  ├─ Hors préférences     : {s.get('hors_pref', 0)} groupe(s)")
-    print(f"  └─ Non affectés         : {s.get('non_affecte', 0)} groupe(s)")
-    print("═" * 52 + "\n")
+    print(f"  Ã¢â€Å“Ã¢â€â‚¬ 1er choix obtenu     : {s.get(1, 0)} groupe(s)")
+    print(f"  Ã¢â€Å“Ã¢â€â‚¬ 2e  choix obtenu     : {s.get(2, 0)} groupe(s)")
+    print(f"  Ã¢â€Å“Ã¢â€â‚¬ 3e  choix obtenu     : {s.get(3, 0)} groupe(s)")
+    print(f"  Ã¢â€Å“Ã¢â€â‚¬ Hors prÃƒÂ©fÃƒÂ©rences     : {s.get('hors_pref', 0)} groupe(s)")
+    print(f"  Ã¢â€â€Ã¢â€â‚¬ Non affectÃƒÂ©s         : {s.get('non_affecte', 0)} groupe(s)")
+    print("Ã¢â€¢Â" * 52 + "\n")
 
 
-# ═════════════════════════════════════════════
-# POINT D'ENTRÉE POUR FASTAPI (main.py)
-# ═════════════════════════════════════════════
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+# POINT D'ENTRÃƒâ€°E POUR FASTAPI (main.py)
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 def affecter_projets_avec_rapport(
     choix_list: list[dict],
     projets_info: Optional[list[dict]] = None,
     groupes_info: Optional[list[dict]] = None,
     capacite_projets: Optional[dict]   = None,
+    poids_override: Optional[Dict[str, float]] = None,
 ) -> tuple[dict, dict]:
     """
-    Version étendue retournant (résultat, rapport).
-    À utiliser dans main.py pour exposer le rapport via l'API.
-
-    Exemple dans main.py :
-        resultats, rapport = affecter_projets_avec_rapport(
-            choix_list    = choix_list,
-            projets_info  = [p.__dict__ for p in db.query(models.Projet).all()],
-            groupes_info  = [g.__dict__ for g in db.query(models.Groupe).all()],
-        )
+    Version ÃƒÂ©tendue retournant (rÃƒÂ©sultat, rapport).
     """
-    # Calcul du résultat
-    resultat = affecter_projets(choix_list, projets_info, groupes_info, capacite_projets)
+    resultat = affecter_projets(
+        choix_list, projets_info, groupes_info,
+        capacite_projets, poids_override
+    )
 
-    # Reconstruction des préférences pour le rapport
+    # Reconstruction des prÃƒÂ©fÃƒÂ©rences pour le rapport
     preferences: dict[int, list[tuple[int, int]]] = {}
     for c in choix_list:
         gid, pid, pri = c["groupe_id"], c["projet_id"], c["priorite"]
@@ -419,12 +412,12 @@ def affecter_projets_avec_rapport(
     return resultat, rapport
 
 
-# ═════════════════════════════════════════════
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 # TESTS RAPIDES (python affectation.py)
-# ═════════════════════════════════════════════
+# Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 if __name__ == "__main__":
-    print("=== TEST 1 : Cas nominal — 3 groupes, 3 projets ===")
+    print("=== TEST 1 : Cas nominal Ã¢â‚¬â€ 3 groupes, 3 projets ===")
     choix = [
         {"groupe_id": 1, "projet_id": 10, "priorite": 1},
         {"groupe_id": 1, "projet_id": 20, "priorite": 2},
@@ -437,13 +430,13 @@ if __name__ == "__main__":
         {"groupe_id": 3, "projet_id": 30, "priorite": 3},
     ]
     res, rap = affecter_projets_avec_rapport(choix)
-    print("Résultats :", res)
-    print("Équité    :", rap["equity_score"], "| 1er vœu :", rap["taux_premier_voeu"], "%")
-    assert all(v is not None for v in res.values()), "Tous doivent être affectés !"
-    assert len(set(res.values())) == 3, "Chaque projet doit être unique !"
-    print("✓ Test 1 OK\n")
+    print("RÃƒÂ©sultats :", res)
+    print("Ãƒâ€°quitÃƒÂ©    :", rap["equity_score"], "| 1er vÃ…â€œu :", rap["taux_premier_voeu"], "%")
+    assert all(v is not None for v in res.values()), "Tous doivent ÃƒÂªtre affectÃƒÂ©s !"
+    assert len(set(res.values())) == 3, "Chaque projet doit ÃƒÂªtre unique !"
+    print("Ã¢Å“â€œ Test 1 OK\n")
 
-    print("=== TEST 2 : Avec enrichissement compétences ===")
+    print("=== TEST 2 : Avec enrichissement compÃƒÂ©tences ===")
     projets_info = [
         {"id": 10, "competences_requises": "Python, IA, Machine Learning", "encadrant_id": 100},
         {"id": 20, "competences_requises": "React, TypeScript, Web",        "encadrant_id": 101},
@@ -455,11 +448,11 @@ if __name__ == "__main__":
         {"id": 3, "etudiants": [{"filiere": "Cloud"}, {"filiere": "CLOUD"}]},
     ]
     res2, rap2 = affecter_projets_avec_rapport(choix, projets_info, groupes_info)
-    print("Résultats :", res2)
-    print("Équité    :", rap2["equity_score"], "| 1er vœu :", rap2["taux_premier_voeu"], "%")
-    print("✓ Test 2 OK\n")
+    print("RÃƒÂ©sultats :", res2)
+    print("Ãƒâ€°quitÃƒÂ©    :", rap2["equity_score"], "| 1er vÃ…â€œu :", rap2["taux_premier_voeu"], "%")
+    print("Ã¢Å“â€œ Test 2 OK\n")
 
-    print("=== TEST 3 : Cas limite — plus de groupes que de projets ===")
+    print("=== TEST 3 : Cas limite Ã¢â‚¬â€ plus de groupes que de projets ===")
     choix3 = [
         {"groupe_id": 1, "projet_id": 10, "priorite": 1},
         {"groupe_id": 1, "projet_id": 20, "priorite": 2},
@@ -469,13 +462,13 @@ if __name__ == "__main__":
         {"groupe_id": 3, "projet_id": 20, "priorite": 2},
     ]
     res3, rap3 = affecter_projets_avec_rapport(choix3)
-    print("Résultats :", res3)
-    print("Non affectés :", rap3["nb_non_affectes"])
-    print("✓ Test 3 OK\n")
+    print("RÃƒÂ©sultats :", res3)
+    print("Non affectÃƒÂ©s :", rap3["nb_non_affectes"])
+    print("Ã¢Å“â€œ Test 3 OK\n")
 
-    print("=== TEST 4 : Capacité multiple (un projet peut accueillir 2 groupes) ===")
+    print("=== TEST 4 : CapacitÃƒÂ© multiple (un projet peut accueillir 2 groupes) ===")
     caps = {10: 2, 20: 1}
     res4, rap4 = affecter_projets_avec_rapport(choix3, capacite_projets=caps)
-    print("Résultats (cap. multiple) :", res4)
+    print("RÃƒÂ©sultats (cap. multiple) :", res4)
     assert list(res4.values()).count(10) <= 2, "Projet 10 ne peut accueillir que 2 groupes"
-    print("✓ Test 4 OK\n")
+    print("Ã¢Å“â€œ Test 4 OK\n")
