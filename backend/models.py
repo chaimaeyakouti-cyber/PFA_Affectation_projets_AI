@@ -7,6 +7,9 @@ class Groupe(Base):
     id = Column(Integer, primary_key=True, index=True)
     nom = Column(String(50), unique=True)
     createur_id = Column(Integer, ForeignKey("utilisateurs.id"), nullable=True)
+    chef_nom = Column(String(100), nullable=True)
+    competences_techniques = Column(Text, nullable=True)
+    soft_skills = Column(Text, nullable=True)
     etudiants = relationship("Etudiant", back_populates="groupe")
     choix = relationship("Choix", back_populates="groupe")
 

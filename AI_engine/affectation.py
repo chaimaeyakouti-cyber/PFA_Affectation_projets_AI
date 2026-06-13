@@ -161,13 +161,18 @@ def affecter_projets(
         for p in projets_info:
             projets_idx[p["id"]] = p
 
-    # Index groupe_id → filière majoritaire du groupe
-    filieres_idx: dict = {}
+    # Index groupe_id → compétences déclarées + filières du groupe
+    competences_groupes_idx: dict = {}
     if groupes_info:
         for g in groupes_info:
+            morceaux = []
+            if g.get("competences"):
+                morceaux.append(g.get("competences", ""))
             if g.get("etudiants"):
                 filieres = [e.get("filiere", "") for e in g["etudiants"] if e.get("filiere")]
-                filieres_idx[g["id"]] = " ".join(filieres)
+                morceaux.extend(filieres)
+            if morceaux:
+                competences_groupes_idx[g["id"]] = " ".join(morceaux)
 
     # Capacité des projets
     caps = capacite_projets or {}
@@ -225,7 +230,7 @@ def affecter_projets(
 
         # Calcul du score composite pour ce couple (groupe, projet)
         p_info    = projets_idx.get(projet_id, {})
-        filiere   = filieres_idx.get(groupe_id)
+        filiere   = competences_groupes_idx.get(groupe_id)
         comp_req  = p_info.get("competences_requises")
         enc_id    = p_info.get("encadrant_id")
 

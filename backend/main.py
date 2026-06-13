@@ -44,6 +44,9 @@ def ensure_missing_columns():
     required_columns = {
         "groupes": {
             "createur_id": "INT NULL",
+            "chef_nom": "VARCHAR(100) NULL",
+            "competences_techniques": "TEXT NULL",
+            "soft_skills": "TEXT NULL",
         },
         "etudiants": {
             "email": "VARCHAR(100) NULL",
@@ -172,8 +175,20 @@ def create_groupe(
 ):
     if len(groupe.etudiants) > 3:
         raise HTTPException(status_code=400, detail="Un groupe ne peut pas dépasser 3 étudiants")
+    competences_techniques = [c.strip() for c in groupe.competences_techniques if c.strip()]
+    soft_skills = [s.strip() for s in groupe.soft_skills if s.strip()]
+    if not competences_techniques:
+        raise HTTPException(status_code=400, detail="Au moins une competence technique est requise")
+    if not soft_skills:
+        raise HTTPException(status_code=400, detail="Au moins une soft skill est requise")
     createur_id = current_user.id if current_user.role == "etudiant" else groupe.createur_id
-    new_groupe = models.Groupe(nom=groupe.nom, createur_id=createur_id)
+    new_groupe = models.Groupe(
+        nom=groupe.nom,
+        createur_id=createur_id,
+        chef_nom=current_user.nom,
+        competences_techniques=", ".join(competences_techniques),
+        soft_skills=", ".join(soft_skills),
+    )
     db.add(new_groupe)
     db.commit()
     db.refresh(new_groupe)
@@ -381,6 +396,10 @@ def lancer_affectation(
     groupes_info = [
         {
             "id": g.id,
+            "competences": " ".join(filter(None, [
+                g.competences_techniques,
+                g.soft_skills,
+            ])),
             "etudiants": [
                 {"filiere": e.filiere}
                 for e in g.etudiants

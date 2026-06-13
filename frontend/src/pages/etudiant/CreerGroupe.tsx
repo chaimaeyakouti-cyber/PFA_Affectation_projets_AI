@@ -21,9 +21,34 @@ const P = {
 
 interface Etudiant { nom: string; prenom: string; email: string; filiere: string }
 interface Projet { id: number; titre: string; description: string; encadrant_id: number }
-interface GroupeExistant { id: number; nom: string; etudiants: any[] }
+interface GroupeExistant {
+  id: number
+  nom: string
+  chef_nom?: string
+  competences_techniques?: string
+  soft_skills?: string
+  etudiants: any[]
+}
 
 type Step = 'groupe' | 'choix' | 'done'
+
+type SkillCategory = { title: string; items: string[] }
+
+const technicalSkillCategories: SkillCategory[] = [
+  { title: 'Developpement web', items: ['React', 'Angular', 'Vue.js', 'Node.js', 'FastAPI', 'Django', 'REST API'] },
+  { title: 'Developpement mobile', items: ['Flutter', 'React Native', 'Android', 'iOS'] },
+  { title: 'IA & Data', items: ['Python', 'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision', 'SQL'] },
+  { title: 'Cloud & DevOps', items: ['Docker', 'Kubernetes', 'AWS/Azure/GCP', 'CI/CD', 'Linux'] },
+  { title: 'Cybersecurite', items: ['Securite web', 'Pentest', 'Cryptographie', 'IAM', 'Reseaux'] },
+  { title: 'Design & Produit', items: ['UI/UX', 'Figma', 'Prototypage', 'Accessibilite'] },
+]
+
+const softSkillCategories: SkillCategory[] = [
+  {
+    title: 'Soft skills du groupe',
+    items: ['Communication', 'Organisation', 'Travail en equipe', 'Leadership', 'Autonomie', 'Redaction', 'Presentation', 'Gestion du temps', 'Resolution de problemes'],
+  },
+]
 
 export default function CreerGroupe() {
   const navigate = useNavigate()
@@ -37,6 +62,8 @@ export default function CreerGroupe() {
   // Step 1 - Groupe
   const [nomGroupe, setNomGroupe] = useState('')
   const [etudiants, setEtudiants] = useState<Etudiant[]>([])
+  const [selectedTechSkills, setSelectedTechSkills] = useState<string[]>([])
+  const [selectedSoftSkills, setSelectedSoftSkills] = useState<string[]>([])
   const [groupeId, setGroupeId] = useState<number | null>(null)
   const [loadingGroupe, setLoadingGroupe] = useState(false)
   const [errGroupe, setErrGroupe] = useState('')
@@ -104,9 +131,15 @@ export default function CreerGroupe() {
     setEtudiants(updated)
   }
 
+  const toggleSkill = (skill: string, selected: string[], setter: (skills: string[]) => void) => {
+    setter(selected.includes(skill) ? selected.filter(s => s !== skill) : [...selected, skill])
+  }
+
   const handleCreerGroupe = async () => {
     setErrGroupe('')
     if (!nomGroupe.trim()) return setErrGroupe('Le nom du groupe est requis.')
+    if (selectedTechSkills.length === 0) return setErrGroupe('Selectionnez au moins une competence technique du groupe.')
+    if (selectedSoftSkills.length === 0) return setErrGroupe('Selectionnez au moins une soft skill du groupe.')
     if (etudiants.some(e => !e.nom.trim() || !e.email.trim() || !e.filiere.trim()))
       return setErrGroupe('Tous les champs des étudiants sont requis.')
 
@@ -125,6 +158,8 @@ export default function CreerGroupe() {
 
       const res = await creerGroupe({
         nom: nomGroupe,
+        competences_techniques: selectedTechSkills,
+        soft_skills: selectedSoftSkills,
         etudiants: etudiantsFormatted,
         createur_id: currentUser?.id || null,  // ← Lier le créateur au groupe
       })
@@ -297,6 +332,31 @@ export default function CreerGroupe() {
                   style={{ width: '100%', padding: '12px 16px', borderRadius: 10, fontSize: 15, border: `1.5px solid ${P.border}`, background: P.bg, color: P.text }}
                 />
               </div>
+
+              <div style={{ background: '#F0FDFA', border: '1px solid #99F6E4', borderRadius: 12, padding: '16px 18px', marginBottom: 28 }}>
+                <div style={{ color: P.text, fontSize: 14, fontWeight: 800, marginBottom: 5 }}>
+                  Chef de groupe : {currentUser?.nom || 'compte connecte'}
+                </div>
+                <div style={{ color: P.muted, fontSize: 13, lineHeight: 1.55 }}>
+                  Le chef de groupe est le seul membre ayant acces a la plateforme. Les competences cochees ci-dessous servent au moteur d'affectation pour mesurer l'adequation avec les projets.
+                </div>
+              </div>
+
+              <SkillSelector
+                title="Competences techniques du groupe"
+                required
+                categories={technicalSkillCategories}
+                selected={selectedTechSkills}
+                onToggle={skill => toggleSkill(skill, selectedTechSkills, setSelectedTechSkills)}
+              />
+
+              <SkillSelector
+                title="Soft skills du groupe"
+                required
+                categories={softSkillCategories}
+                selected={selectedSoftSkills}
+                onToggle={skill => toggleSkill(skill, selectedSoftSkills, setSelectedSoftSkills)}
+              />
 
               {/* Étudiants */}
               <div>
@@ -492,6 +552,65 @@ export default function CreerGroupe() {
           </div>
         )}
       </main>
+    </div>
+  )
+}
+
+function SkillSelector({
+  title,
+  required = false,
+  categories,
+  selected,
+  onToggle,
+}: {
+  title: string
+  required?: boolean
+  categories: SkillCategory[]
+  selected: string[]
+  onToggle: (skill: string) => void
+}) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <label style={{ color: P.text, fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 700 }}>
+          {title} {required && <span style={{ color: P.error }}>*</span>}
+        </label>
+        <span style={{ color: selected.length ? P.mid : P.muted, background: selected.length ? P.light : '#F8FAFC', border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>
+          {selected.length} selection(s)
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+        {categories.map(category => (
+          <div key={category.title} style={{ background: '#F8FAFC', border: `1px solid ${P.border}`, borderRadius: 12, padding: '14px 14px' }}>
+            <div style={{ color: P.text, fontSize: 13, fontWeight: 800, marginBottom: 10 }}>{category.title}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {category.items.map(skill => {
+                const checked = selected.includes(skill)
+                return (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => onToggle(skill)}
+                    style={{
+                      border: checked ? `1px solid ${P.accent}` : `1px solid ${P.border}`,
+                      background: checked ? P.light : '#fff',
+                      color: checked ? P.mid : P.text,
+                      borderRadius: 999,
+                      padding: '7px 11px',
+                      fontSize: 12,
+                      fontWeight: checked ? 800 : 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {checked ? '✓ ' : ''}{skill}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

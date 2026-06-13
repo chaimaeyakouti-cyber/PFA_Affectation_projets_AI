@@ -29,13 +29,23 @@ const P = {
 }
 
 interface Etudiant { nom: string; prenom?: string; email?: string; filiere: string }
-interface Groupe { id: number; nom: string; etudiants: Etudiant[] }
+interface Groupe {
+  id: number
+  nom: string
+  chef_nom?: string
+  competences_techniques?: string
+  soft_skills?: string
+  etudiants: Etudiant[]
+}
 interface Encadrant { id: number; nom: string; prenom?: string; email: string; specialite?: string }
 interface Projet { id: number; titre: string; description: string; encadrant_id: number }
 interface Choix { id: number; groupe_id: number; projet_id: number; priorite: number }
 interface Affectation { id: number; groupe_id: number; projet_id: number | null; valide: string }
 
 type Tab = 'overview' | 'groupes' | 'affectation'
+
+const splitSkills = (value?: string) =>
+  value ? value.split(',').map(skill => skill.trim()).filter(Boolean) : []
 
 export default function CoordinateurDashboard() {
   const navigate = useNavigate()
@@ -268,12 +278,24 @@ export default function CoordinateurDashboard() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 18 }}>
                             <div>
                               <h3 style={{ margin: '0 0 6px', color: P.text, fontSize: 18 }}>{groupe.nom}</h3>
+                              {groupe.chef_nom && (
+                                <p style={{ margin: '0 0 6px', color: P.mid, fontSize: 12, fontWeight: 800 }}>
+                                  Chef de groupe : {groupe.chef_nom}
+                                </p>
+                              )}
                               <p style={{ margin: 0, color: P.muted, fontSize: 13 }}>{groupe.etudiants?.length || 0} membre(s) · {lesChoix.length} choix soumis</p>
                             </div>
                             <button onClick={() => handleSupprimerGroupe(groupe)} className="action-btn" style={{ background: P.errorBg, color: P.error, border: '1px solid #FECACA', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontWeight: 700 }}>
                               Supprimer
                             </button>
                           </div>
+
+                          {(groupe.competences_techniques || groupe.soft_skills) && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 18 }}>
+                              <SkillBadges label="Competences techniques" skills={splitSkills(groupe.competences_techniques)} />
+                              <SkillBadges label="Soft skills" skills={splitSkills(groupe.soft_skills)} />
+                            </div>
+                          )}
 
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                             <div>
@@ -376,6 +398,25 @@ export default function CoordinateurDashboard() {
           </>
         )}
       </main>
+    </div>
+  )
+}
+
+function SkillBadges({ label, skills }: { label: string; skills: string[] }) {
+  return (
+    <div style={{ background: P.light, borderRadius: 10, padding: '12px 14px' }}>
+      <div style={{ ...labelStyle, marginBottom: 8 }}>{label}</div>
+      {skills.length === 0 ? (
+        <span style={mutedStyle}>Non renseigne</span>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {skills.map(skill => (
+            <span key={skill} style={{ background: '#fff', color: P.mid, border: `1px solid ${P.border}`, borderRadius: 999, padding: '4px 9px', fontSize: 11, fontWeight: 800 }}>
+              {skill}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

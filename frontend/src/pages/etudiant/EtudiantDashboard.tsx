@@ -21,6 +21,9 @@ const palette = {
 interface MonGroupe {
   id: number
   nom: string
+  chef_nom?: string
+  competences_techniques?: string
+  soft_skills?: string
   etudiants: { nom: string; prenom: string; filiere: string }[]
 }
 
@@ -150,7 +153,18 @@ export default function EtudiantDashboard() {
                 <div style={{ background: palette.lightPurple, borderRadius: 10, padding: '12px 16px', marginBottom: 14 }}>
                   <div style={{ color: palette.text, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{monGroupe.nom}</div>
                   <div style={{ color: palette.muted, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>{monGroupe.etudiants?.length} membre(s)</div>
+                  {monGroupe.chef_nom && (
+                    <div style={{ color: palette.midPurple, fontSize: 12, fontWeight: 800, marginTop: 6 }}>
+                      Chef de groupe : {monGroupe.chef_nom}
+                    </div>
+                  )}
                 </div>
+                {(monGroupe.competences_techniques || monGroupe.soft_skills) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    <MiniSkills label="Competences techniques" skills={splitSkills(monGroupe.competences_techniques)} />
+                    <MiniSkills label="Soft skills" skills={splitSkills(monGroupe.soft_skills)} />
+                  </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {monGroupe.etudiants?.map((e, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -325,3 +339,24 @@ export default function EtudiantDashboard() {
     </div>
   )
 }
+
+function MiniSkills({ label, skills }: { label: string; skills: string[] }) {
+  if (skills.length === 0) return null
+  return (
+    <div>
+      <div style={{ color: palette.muted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 800, marginBottom: 6 }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {skills.slice(0, 8).map(skill => (
+          <span key={skill} style={{ background: '#F0FDFA', color: palette.midPurple, border: '1px solid #99F6E4', borderRadius: 999, padding: '3px 8px', fontSize: 11, fontWeight: 700 }}>
+            {skill}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const splitSkills = (value?: string) =>
+  value ? value.split(',').map(skill => skill.trim()).filter(Boolean) : []

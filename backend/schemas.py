@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
@@ -20,12 +20,17 @@ class GroupeCreate(BaseModel):
     nom: str
     etudiants: list[EtudiantCreate]
     createur_id: Optional[int] = None
+    competences_techniques: list[str] = Field(default_factory=list)
+    soft_skills: list[str] = Field(default_factory=list)
 
 class Groupe(BaseModel):
     id: int
     nom: str
     createur_id: Optional[int] = None
-    etudiants: list[Etudiant] = []
+    chef_nom: Optional[str] = None
+    competences_techniques: Optional[str] = None
+    soft_skills: Optional[str] = None
+    etudiants: list[Etudiant] = Field(default_factory=list)
     class Config:
         from_attributes = True
 
