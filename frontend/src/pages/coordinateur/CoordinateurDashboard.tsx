@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getGroupes,
@@ -83,7 +83,7 @@ export default function CoordinateurDashboard() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  // â”€â”€ Config moteur IA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Config moteur IA ────────────────────────────────────────────────
   const [config, setConfig] = useState<MoteurConfig>(DEFAULT_CONFIG)
 
   const loadAll = async () => {
@@ -98,7 +98,7 @@ export default function CoordinateurDashboard() {
       setChoix(c.data)
       setAffectations(a.data)
     } catch (_) {
-      setError('Impossible de charger les donnÃ©es.')
+      setError('Impossible de charger les données.')
     } finally {
       setLoading(false)
     }
@@ -114,7 +114,7 @@ export default function CoordinateurDashboard() {
     projets: projets.length,
     choix: choix.length,
     affectes: affectations.length,
-    valides: affectations.filter(a => a.valide === 'validÃ©').length,
+    valides: affectations.filter(a => a.valide === 'validé').length,
     enAttente: affectations.filter(a => a.valide === 'en_attente').length,
     sansChoix: groupes.filter(g => getChoixGroupe(g.id).length === 0).length,
   }
@@ -125,7 +125,7 @@ export default function CoordinateurDashboard() {
     navigate('/')
   }
 
-  // â”€â”€ Helpers config sliders Î±/Î²/Î³ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Helpers config sliders α/β/γ ─────────────────────────────────────
   const updatePoids = (key: 'poids_priorite' | 'poids_adequation' | 'poids_charge', value: number) => {
     setConfig(prev => {
       const clamped = Math.min(1, Math.max(0, value))
@@ -170,7 +170,7 @@ export default function CoordinateurDashboard() {
       setLaunchResult(res.data.affectations)
       setLaunchRapport(res.data.rapport)
       setLaunchConfigUtilisee(res.data.config_utilisee)
-      setMessage('Affectation gÃ©nÃ©rÃ©e. Les encadrants peuvent maintenant valider leurs affectations.')
+      setMessage('Affectation générée. Les encadrants peuvent maintenant valider leurs affectations.')
       await loadAll()
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'Erreur lors du lancement.')
@@ -180,7 +180,7 @@ export default function CoordinateurDashboard() {
   }
 
   const handleSupprimerGroupe = async (groupe: Groupe) => {
-    const ok = window.confirm(`Supprimer le groupe "${groupe.nom}" ? Ses Ã©tudiants, choix et affectations seront retirÃ©s.`)
+    const ok = window.confirm(`Supprimer le groupe "${groupe.nom}" ? Ses étudiants, choix et affectations seront retirés.`)
     if (!ok) return
 
     setError('')
@@ -188,14 +188,14 @@ export default function CoordinateurDashboard() {
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
       await supprimerGroupe(groupe.id, currentUser.id)
-      setMessage(`Groupe "${groupe.nom}" supprimÃ©.`)
+      setMessage(`Groupe "${groupe.nom}" supprimé.`)
       await loadAll()
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'Erreur lors de la suppression du groupe.')
     }
   }
 
-  // â”€â”€ Export CSV / JSON des rÃ©sultats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Export CSV / JSON des résultats ──────────────────────────────────
   const handleExportCsv = async () => {
     try {
       const res = await exportCsv()
@@ -226,9 +226,9 @@ export default function CoordinateurDashboard() {
   }
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'overview', label: 'Vue dâ€™ensemble', icon: 'ðŸ“Š' },
-    { id: 'groupes', label: 'Groupes & choix', icon: 'ðŸ‘¥' },
-    { id: 'affectation', label: 'Lancer le moteur', icon: 'âš™ï¸' },
+    { id: 'overview', label: 'Vue d’ensemble', icon: '📊' },
+    { id: 'groupes', label: 'Groupes & choix', icon: '👥' },
+    { id: 'affectation', label: 'Lancer le moteur', icon: '⚙️' },
   ]
 
   return (
@@ -252,10 +252,10 @@ export default function CoordinateurDashboard() {
       <header style={{ background: P.deep, borderBottom: `3px solid ${P.accent}`, padding: '0 40px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: P.accent, display: 'grid', placeItems: 'center', fontSize: 18 }}>ðŸŽ“</div>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: P.accent, display: 'grid', placeItems: 'center', fontSize: 18 }}>🎓</div>
             <div>
               <div style={{ color: '#fff', fontWeight: 700 }}>PFA Affectation</div>
-              <div style={{ color: '#A5F3FC', fontSize: 12 }}>INPT Â· Espace Coordinateur</div>
+              <div style={{ color: '#A5F3FC', fontSize: 12 }}>INPT · Espace Coordinateur</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -263,7 +263,7 @@ export default function CoordinateurDashboard() {
               Actualiser
             </button>
             <button onClick={handleLogout} className="action-btn" style={{ background: '#fff', border: 'none', color: P.deep, borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700 }}>
-              DÃ©connexion
+              Déconnexion
             </button>
           </div>
         </div>
@@ -273,7 +273,7 @@ export default function CoordinateurDashboard() {
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <h1 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 800 }}>Tableau de bord Coordinateur</h1>
           <p style={{ margin: '0 0 26px', color: '#A5F3FC', fontSize: 14 }}>
-            Supervisez les groupes et lancez le moteur dâ€™affectation. La validation finale reste du cÃ´tÃ© des encadrants.
+            Supervisez les groupes et lancez le moteur d’affectation. La validation finale reste du côté des encadrants.
           </p>
           {!loading && (
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -281,7 +281,7 @@ export default function CoordinateurDashboard() {
                 ['Groupes', stats.groupes],
                 ['Projets', stats.projets],
                 ['Choix soumis', stats.choix],
-                ['Affectations gÃ©nÃ©rÃ©es', stats.affectes],
+                ['Affectations générées', stats.affectes],
                 ['En attente encadrants', stats.enAttente],
               ].map(([label, val]) => (
                 <div key={label} style={{ minWidth: 128, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 16px' }}>
@@ -317,22 +317,22 @@ export default function CoordinateurDashboard() {
         {error && <Alert kind="error" text={error} onClose={() => setError('')} />}
 
         {loading ? (
-          <Empty icon="â³" title="Chargement des donnÃ©es..." />
+          <Empty icon="⏳" title="Chargement des données..." />
         ) : (
           <>
             {tab === 'overview' && (
               <div>
-                <h2 style={titleStyle}>Vue dâ€™ensemble</h2>
+                <h2 style={titleStyle}>Vue d’ensemble</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginBottom: 28 }}>
-                  <StatusCard title="Groupes sans choix" value={stats.sansChoix} good={stats.sansChoix === 0} description={stats.sansChoix === 0 ? 'Tous les groupes ont soumis leurs choix.' : 'Ces groupes doivent complÃ©ter leurs prÃ©fÃ©rences.'} />
-                  <StatusCard title="Affectations Ã  valider" value={stats.enAttente} good={stats.enAttente === 0} description="Ces affectations sont traitÃ©es par les encadrants." />
-                  <StatusCard title="Affectations validÃ©es" value={stats.valides} good={stats.valides > 0} description={`Sur ${stats.affectes} affectation(s) gÃ©nÃ©rÃ©e(s).`} />
+                  <StatusCard title="Groupes sans choix" value={stats.sansChoix} good={stats.sansChoix === 0} description={stats.sansChoix === 0 ? 'Tous les groupes ont soumis leurs choix.' : 'Ces groupes doivent compléter leurs préférences.'} />
+                  <StatusCard title="Affectations à valider" value={stats.enAttente} good={stats.enAttente === 0} description="Ces affectations sont traitées par les encadrants." />
+                  <StatusCard title="Affectations validées" value={stats.valides} good={stats.valides > 0} description={`Sur ${stats.affectes} affectation(s) générée(s).`} />
                 </div>
 
                 <div style={panelStyle}>
                   <h3 style={sectionTitleStyle}>Projets par encadrant</h3>
                   {encadrants.length === 0 ? (
-                    <p style={mutedStyle}>Aucun encadrant enregistrÃ©.</p>
+                    <p style={mutedStyle}>Aucun encadrant enregistré.</p>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
                       {encadrants.map(enc => {
@@ -347,7 +347,7 @@ export default function CoordinateurDashboard() {
                               </div>
                             </div>
                             {lesProjets.length === 0 ? (
-                              <span style={mutedStyle}>Aucun projet proposÃ©</span>
+                              <span style={mutedStyle}>Aucun projet proposé</span>
                             ) : lesProjets.map(p => (
                               <div key={p.id} style={{ background: '#fff', borderRadius: 8, padding: '8px 10px', marginTop: 6, fontSize: 13, color: P.text }}>
                                 {p.titre}
@@ -365,9 +365,9 @@ export default function CoordinateurDashboard() {
             {tab === 'groupes' && (
               <div>
                 <h2 style={titleStyle}>Groupes & choix de projets</h2>
-                <p style={{ ...mutedStyle, marginBottom: 24 }}>{groupes.length} groupe(s) enregistrÃ©(s). Le coordinateur peut supprimer un groupe si nÃ©cessaire.</p>
+                <p style={{ ...mutedStyle, marginBottom: 24 }}>{groupes.length} groupe(s) enregistré(s). Le coordinateur peut supprimer un groupe si nécessaire.</p>
                 {groupes.length === 0 ? (
-                  <Empty icon="ðŸ“­" title="Aucun groupe enregistrÃ© pour le moment." />
+                  <Empty icon="📭" title="Aucun groupe enregistré pour le moment." />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {groupes.map(groupe => {
@@ -382,7 +382,7 @@ export default function CoordinateurDashboard() {
                                   Chef de groupe : {groupe.chef_nom}
                                 </p>
                               )}
-                              <p style={{ margin: 0, color: P.muted, fontSize: 13 }}>{groupe.etudiants?.length || 0} membre(s) Â· {lesChoix.length} choix soumis</p>
+                              <p style={{ margin: 0, color: P.muted, fontSize: 13 }}>{groupe.etudiants?.length || 0} membre(s) · {lesChoix.length} choix soumis</p>
                             </div>
                             <button onClick={() => handleSupprimerGroupe(groupe)} className="action-btn" style={{ background: P.errorBg, color: P.error, border: '1px solid #FECACA', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontWeight: 700 }}>
                               Supprimer
@@ -441,54 +441,54 @@ export default function CoordinateurDashboard() {
 
             {tab === 'affectation' && (
               <div>
-                <h2 style={titleStyle}>Lancer le moteur dâ€™affectation</h2>
-                <p style={{ ...mutedStyle, marginBottom: 24 }}>Le coordinateur lance uniquement le calcul. Les encadrants valident ensuite les affectations liÃ©es Ã  leurs projets.</p>
+                <h2 style={titleStyle}>Lancer le moteur d’affectation</h2>
+                <p style={{ ...mutedStyle, marginBottom: 24 }}>Le coordinateur lance uniquement le calcul. Les encadrants valident ensuite les affectations liées à leurs projets.</p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 22 }}>
                   {[
-                    { ok: stats.groupes > 0, label: `${stats.groupes} groupe(s) enregistrÃ©(s)` },
+                    { ok: stats.groupes > 0, label: `${stats.groupes} groupe(s) enregistré(s)` },
                     { ok: stats.projets > 0, label: `${stats.projets} projet(s) disponible(s)` },
                     { ok: stats.choix > 0, label: `${stats.choix} choix soumis` },
                     { ok: stats.sansChoix === 0, label: `Groupes sans choix : ${stats.sansChoix}` },
                   ].map(item => (
                     <div key={item.label} style={{ background: item.ok ? P.successBg : P.warningBg, borderRadius: 10, padding: '13px 15px', display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <span>{item.ok ? 'âœ…' : 'âš ï¸'}</span>
+                      <span>{item.ok ? '✅' : '⚠️'}</span>
                       <span style={{ color: item.ok ? P.success : P.warning, fontWeight: 700, fontSize: 14 }}>{item.label}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* â”€â”€ Configuration du moteur IA (Î±/Î²/Î³ + contraintes) â”€â”€ */}
+                {/* ── Configuration du moteur IA (α/β/γ + contraintes) ── */}
                 <div style={{ ...panelStyle, marginBottom: 22 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <h3 style={{ margin: 0, color: P.text, fontSize: 17, fontWeight: 800 }}>âš™ï¸ Configuration du moteur</h3>
+                    <h3 style={{ margin: 0, color: P.text, fontSize: 17, fontWeight: 800 }}>⚙️ Configuration du moteur</h3>
                     <button onClick={resetConfig} className="action-btn" style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
-                      RÃ©initialiser
+                      Réinitialiser
                     </button>
                   </div>
                   <p style={{ ...mutedStyle, marginBottom: 20 }}>
-                    Ajustez l'importance relative de chaque critÃ¨re dans le calcul du score. La somme Î± + Î² + Î³ doit toujours Ãªtre Ã©gale Ã  1.
+                    Ajustez l'importance relative de chaque critère dans le calcul du score. La somme α + β + γ doit toujours être égale à 1.
                   </p>
 
-                  {/* Sliders Î± / Î² / Î³ */}
+                  {/* Sliders α / β / γ */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 22 }}>
                     <SliderRow
-                      label="Î± â€” PrioritÃ© du vÅ“u"
-                      hint="Importance accordÃ©e au rang de prÃ©fÃ©rence exprimÃ© par le groupe (1er, 2e, 3e choix)."
+                      label="α — Priorité du vœu"
+                      hint="Importance accordée au rang de préférence exprimé par le groupe (1er, 2e, 3e choix)."
                       value={config.poids_priorite}
                       onChange={v => updatePoids('poids_priorite', v)}
                       color={P.accent}
                     />
                     <SliderRow
-                      label="Î² â€” AdÃ©quation compÃ©tences"
-                      hint="Importance de la correspondance entre les stacks/filiÃ¨res des Ã©tudiants et les compÃ©tences requises du projet."
+                      label="β — Adéquation compétences"
+                      hint="Importance de la correspondance entre les stacks/filières des étudiants et les compétences requises du projet."
                       value={config.poids_adequation}
                       onChange={v => updatePoids('poids_adequation', v)}
                       color="#22D3EE"
                     />
                     <SliderRow
-                      label="Î³ â€” Ã‰quilibrage de la charge"
-                      hint="Importance donnÃ©e Ã  l'Ã©quilibre du nombre de groupes encadrÃ©s par chaque enseignant."
+                      label="γ — Équilibrage de la charge"
+                      hint="Importance donnée à l'équilibre du nombre de groupes encadrés par chaque enseignant."
                       value={config.poids_charge}
                       onChange={v => updatePoids('poids_charge', v)}
                       color="#A5F3FC"
@@ -502,8 +502,8 @@ export default function CoordinateurDashboard() {
                     borderRadius: 10, padding: '10px 16px', marginBottom: 22, fontSize: 13, fontWeight: 700,
                     color: Math.abs(sommePoids - 1) < 0.011 ? P.success : P.warning,
                   }}>
-                    <span>Somme Î± + Î² + Î³</span>
-                    <span>{sommePoids.toFixed(2)} {Math.abs(sommePoids - 1) < 0.011 ? 'âœ“' : 'âš ï¸'}</span>
+                    <span>Somme α + β + γ</span>
+                    <span>{sommePoids.toFixed(2)} {Math.abs(sommePoids - 1) < 0.011 ? '✓' : '⚠️'}</span>
                   </div>
 
                   {/* Contraintes */}
@@ -517,7 +517,7 @@ export default function CoordinateurDashboard() {
                       />
                       <div>
                         <div style={{ color: P.text, fontSize: 14, fontWeight: 700 }}>Interdire les doubles affectations</div>
-                        <div style={{ color: P.muted, fontSize: 12 }}>Un groupe ne peut Ãªtre affectÃ© qu'Ã  un seul projet.</div>
+                        <div style={{ color: P.muted, fontSize: 12 }}>Un groupe ne peut être affecté qu'à un seul projet.</div>
                       </div>
                     </label>
                     <label className="chk-row">
@@ -527,8 +527,8 @@ export default function CoordinateurDashboard() {
                         onChange={e => setConfig(prev => ({ ...prev, respecter_capacite_max: e.target.checked }))}
                       />
                       <div>
-                        <div style={{ color: P.text, fontSize: 14, fontWeight: 700 }}>Respecter la capacitÃ© max. des projets</div>
-                        <div style={{ color: P.muted, fontSize: 12 }}>Le nombre de groupes par projet ne peut pas dÃ©passer sa capacitÃ© dÃ©finie.</div>
+                        <div style={{ color: P.text, fontSize: 14, fontWeight: 700 }}>Respecter la capacité max. des projets</div>
+                        <div style={{ color: P.muted, fontSize: 12 }}>Le nombre de groupes par projet ne peut pas dépasser sa capacité définie.</div>
                       </div>
                     </label>
                     <label className="chk-row">
@@ -539,17 +539,17 @@ export default function CoordinateurDashboard() {
                       />
                       <div>
                         <div style={{ color: P.text, fontSize: 14, fontWeight: 700 }}>Prioriser par ordre de soumission</div>
-                        <div style={{ color: P.muted, fontSize: 12 }}>En cas d'Ã©galitÃ© de score, favoriser les groupes ayant soumis leurs choix en premier.</div>
+                        <div style={{ color: P.muted, fontSize: 12 }}>En cas d'égalité de score, favoriser les groupes ayant soumis leurs choix en premier.</div>
                       </div>
                     </label>
                   </div>
                 </div>
 
                 <div style={{ ...panelStyle, textAlign: 'center', padding: 34 }}>
-                  <div style={{ fontSize: 44, marginBottom: 12 }}>âš™ï¸</div>
-                  <h3 style={{ margin: '0 0 8px', color: P.text, fontSize: 22 }}>Moteur IA dâ€™affectation</h3>
+                  <div style={{ fontSize: 44, marginBottom: 12 }}>⚙️</div>
+                  <h3 style={{ margin: '0 0 8px', color: P.text, fontSize: 22 }}>Moteur IA d’affectation</h3>
                   <p style={{ ...mutedStyle, maxWidth: 520, margin: '0 auto 24px' }}>
-                    Le lancement remplace les affectations existantes et crÃ©e de nouveaux rÃ©sultats en attente de validation encadrant.
+                    Le lancement remplace les affectations existantes et crée de nouveaux résultats en attente de validation encadrant.
                   </p>
                   <button onClick={handleLancer} disabled={launching || stats.choix === 0} className="action-btn" style={{ background: P.accent, color: '#fff', border: 'none', borderRadius: 11, padding: '14px 34px', fontSize: 15, fontWeight: 800 }}>
                     {launching ? 'Affectation en cours...' : 'Lancer le moteur'}
@@ -559,41 +559,41 @@ export default function CoordinateurDashboard() {
                 {launchResult && (
                   <div style={{ ...panelStyle, marginTop: 22, overflow: 'hidden', padding: 0 }}>
                     <div style={{ padding: '16px 20px', borderBottom: `1px solid ${P.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                      <div style={{ fontWeight: 800, color: P.text }}>RÃ©sultats gÃ©nÃ©rÃ©s</div>
+                      <div style={{ fontWeight: 800, color: P.text }}>Résultats générés</div>
                       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                         {launchRapport && (
                           <>
-                            <Pill label="Ã‰quitÃ©" value={launchRapport.equity_score?.toFixed(2)} />
-                            <Pill label="1er vÅ“u" value={`${launchRapport.taux_premier_voeu}%`} />
+                            <Pill label="Équité" value={launchRapport.equity_score?.toFixed(2)} />
+                            <Pill label="1er vœu" value={`${launchRapport.taux_premier_voeu}%`} />
                             <Pill
                               label="CDC"
-                              value={launchRapport.conforme_cdc ? 'âœ“ Conforme' : 'âœ— Non conforme'}
+                              value={launchRapport.conforme_cdc ? '✓ Conforme' : '✗ Non conforme'}
                               tone={launchRapport.conforme_cdc ? 'success' : 'warning'}
                             />
                           </>
                         )}
-                        {/* â”€â”€ Export CSV / JSON â”€â”€ */}
+                        {/* ── Export CSV / JSON ── */}
                         <button onClick={handleExportCsv} className="action-btn" style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
-                          ðŸ“Š Export CSV
+                          📊 Export CSV
                         </button>
                         <button onClick={handleExportJson} className="action-btn" style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
-                          ðŸ“„ Export JSON
+                          📄 Export JSON
                         </button>
                       </div>
                     </div>
 
                     {launchConfigUtilisee && (
                       <div style={{ padding: '12px 20px', background: P.light, fontSize: 12, color: P.mid, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-                        <span>Î± (prioritÃ©) = <strong>{launchConfigUtilisee.alpha}</strong></span>
-                        <span>Î² (adÃ©quation) = <strong>{launchConfigUtilisee.beta}</strong></span>
-                        <span>Î³ (charge) = <strong>{launchConfigUtilisee.gamma}</strong></span>
+                        <span>α (priorité) = <strong>{launchConfigUtilisee.alpha}</strong></span>
+                        <span>β (adéquation) = <strong>{launchConfigUtilisee.beta}</strong></span>
+                        <span>γ (charge) = <strong>{launchConfigUtilisee.gamma}</strong></span>
                       </div>
                     )}
 
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ background: P.light }}>
-                          {['Groupe', 'Projet affectÃ©', 'Rang obtenu'].map(h => (
+                          {['Groupe', 'Projet affecté', 'Rang obtenu'].map(h => (
                             <th key={h} style={{ textAlign: 'left', padding: '12px 20px', color: P.muted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.7 }}>{h}</th>
                           ))}
                         </tr>
@@ -603,7 +603,7 @@ export default function CoordinateurDashboard() {
                           <tr key={i} style={{ borderBottom: `1px solid ${P.border}` }}>
                             <td style={tdStyle}>{r.groupe}</td>
                             <td style={tdStyle}>{r.projet_affecte}</td>
-                            <td style={tdStyle}>{r.rang_obtenu ? `Choix ${r.rang_obtenu}` : 'Hors prÃ©fÃ©rences'}</td>
+                            <td style={tdStyle}>{r.rang_obtenu ? `Choix ${r.rang_obtenu}` : 'Hors préférences'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -704,7 +704,7 @@ function Alert({ kind, text, onClose }: { kind: 'success' | 'error'; text: strin
   return (
     <div style={{ marginBottom: 18, padding: '12px 16px', borderRadius: 10, background: success ? P.successBg : P.errorBg, color: success ? P.success : P.error, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 700 }}>
       <span>{text}</span>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18 }}>Ã—</button>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18 }}>×</button>
     </div>
   )
 }
