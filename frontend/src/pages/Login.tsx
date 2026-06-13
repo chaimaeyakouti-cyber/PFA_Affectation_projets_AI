@@ -35,8 +35,7 @@ export default function Login() {
           email: form.email,
           mot_de_passe: form.mot_de_passe,
         })
-        const { user, access_token } = res.data
-        localStorage.setItem('access_token', access_token)
+        const user = res.data
         localStorage.setItem('user', JSON.stringify(user))
         if (user.role === 'etudiant') navigate('/etudiant')
         else if (user.role === 'encadrant') navigate('/encadrant')
@@ -48,7 +47,6 @@ export default function Login() {
       setLoading(false)
     }
   }
-
   return (
     <div style={{ minHeight: '100vh', background: '#F5F8FB', fontFamily: 'Inter, system-ui, sans-serif', display: 'grid', placeItems: 'center', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 1080, display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', background: '#fff', border: `1px solid ${P.border}`, borderRadius: 18, overflow: 'hidden', boxShadow: '0 24px 70px rgba(7,27,51,0.12)' }}>

@@ -13,11 +13,11 @@ Sortie  : dict            { groupe_id → projet_id | None }
           + rapport       { equity_score, satisfactions, non_affectes }
 """
 
-from typing import Optional
+from typing import Optional, Dict
 
 
 # ─────────────────────────────────────────────
-# PONDÉRATIONS (ajustables par le coordinateur)
+# PONDÉRATIONS PAR DÉFAUT (ajustables via API)
 # ─────────────────────────────────────────────
 POIDS_PRIORITE   = 0.70   # α — importance du rang de préférence
 POIDS_ADEQUATION = 0.20   # β — adéquation compétences / projet
@@ -49,35 +49,41 @@ def score_priorite(priorite: int) -> float:
 
 
 def score_adequation(filiere_groupe: Optional[str],
-                     competences_projet: Optional[str]) -> float:
+                     competences_projet: Optional[str],
+                     stacks_groupe: Optional[str] = None) -> float:
     """
-    Mesure l'adéquation entre la filière du groupe et les
+    Mesure l'adéquation entre le profil du groupe et les
     compétences requises par le projet.
 
-    Logique simple mais extensible :
-    - Cherche des mots-clés communs entre filière et compétences
-    - Retourne un score entre 0.0 et 1.0
-    - Si aucune info disponible → score neutre 0.5
+    Utilise en priorité les stacks réels des étudiants,
+    puis la filière comme fallback.
+    Retourne un score Jaccard entre 0.0 et 1.0.
     """
-    if not filiere_groupe or not competences_projet:
+    # Combiner filière + stacks pour un profil complet
+    profil_parts = []
+    if filiere_groupe:
+        profil_parts.append(filiere_groupe)
+    if stacks_groupe:
+        profil_parts.append(stacks_groupe)
+
+    profil = " ".join(profil_parts)
+
+    if not profil or not competences_projet:
         return 0.5  # pas d'info → neutre
 
-    mots_filiere = set(filiere_groupe.lower().replace(",", " ").split())
-    mots_projet  = set(competences_projet.lower().replace(",", " ").split())
-
-    # Mots fonctionnels à ignorer
     stop_words = {"de", "la", "le", "les", "et", "en", "un", "une",
-                  "des", "du", "ou", "avec", "pour", "sur", "dans"}
-    mots_filiere -= stop_words
-    mots_projet  -= stop_words
+                  "des", "du", "ou", "avec", "pour", "sur", "dans",
+                  "the", "and", "or", "of", "with", "for"}
 
-    if not mots_filiere or not mots_projet:
+    mots_profil = set(profil.lower().replace(",", " ").split()) - stop_words
+    mots_projet = set(competences_projet.lower().replace(",", " ").split()) - stop_words
+
+    if not mots_profil or not mots_projet:
         return 0.5
 
-    communs = mots_filiere & mots_projet
-    union   = mots_filiere | mots_projet
+    communs = mots_profil & mots_projet
+    union   = mots_profil | mots_projet
 
-    # Coefficient de Jaccard
     return len(communs) / len(union)
 
 
@@ -102,18 +108,24 @@ def calculer_score(priorite: int,
                    filiere_groupe: Optional[str],
                    competences_projet: Optional[str],
                    encadrant_id: Optional[int],
-                   charge_encadrants: dict) -> float:
+                   charge_encadrants: dict,
+                   stacks_groupe: Optional[str] = None,
+                   poids: Optional[Dict[str, float]] = None) -> float:
     """
     Score composite pondéré :
     score = α·priorité + β·adéquation + γ·charge
+
+    poids optionnel : {"priorite": 0.70, "adequation": 0.20, "charge": 0.10}
     """
+    alpha = poids["priorite"]  if poids else POIDS_PRIORITE
+    beta  = poids["adequation"] if poids else POIDS_ADEQUATION
+    gamma = poids["charge"]    if poids else POIDS_CHARGE
+
     s_prio  = score_priorite(priorite)
-    s_adeq  = score_adequation(filiere_groupe, competences_projet)
+    s_adeq  = score_adequation(filiere_groupe, competences_projet, stacks_groupe)
     s_charg = score_charge(encadrant_id, charge_encadrants)
 
-    return (POIDS_PRIORITE   * s_prio
-          + POIDS_ADEQUATION * s_adeq
-          + POIDS_CHARGE     * s_charg)
+    return alpha * s_prio + beta * s_adeq + gamma * s_charg
 
 
 # ═════════════════════════════════════════════
@@ -125,51 +137,33 @@ def affecter_projets(
     projets_info: Optional[list[dict]]   = None,
     groupes_info: Optional[list[dict]]   = None,
     capacite_projets: Optional[dict]     = None,
+    poids_override: Optional[Dict[str, float]] = None,
 ) -> dict:
     """
     Algorithme principal d'affectation.
 
-    Paramètres
-    ----------
-    choix_list : list[dict]
-        Chaque dict contient : groupe_id, projet_id, priorite (1-3)
-
-    projets_info : list[dict] | None
-        Enrichissement optionnel : [{ id, competences_requises, encadrant_id }]
-        Si None → scoring simplifié sans adéquation ni charge.
-
-    groupes_info : list[dict] | None
-        Enrichissement optionnel : [{ id, etudiants: [{ filiere }] }]
-        Si None → pas de scoring par filière.
-
-    capacite_projets : dict | None
-        { projet_id → nb_max_groupes }
-        Si None → chaque projet accepte 1 groupe (défaut CDC).
-
-    Retourne
-    --------
-    dict  { groupe_id → projet_id | None }
-
-    Effets de bord : imprime le rapport d'équité en console.
+    groupes_info : [{ id, etudiants: [{ filiere, stacks }] }]
+    poids_override : {"priorite": 0.70, "adequation": 0.20, "charge": 0.10}
     """
 
-    # ── 0. Normalisation des entrées ──────────────────────────────────────
+    # ── 0. Normalisation ──────────────────────────────────────────────────
 
-    # Index projet_id → info projet
     projets_idx: dict = {}
     if projets_info:
         for p in projets_info:
             projets_idx[p["id"]] = p
 
-    # Index groupe_id → filière majoritaire du groupe
+    # Index groupe_id → profil complet (filière + stacks de tous les membres)
     filieres_idx: dict = {}
+    stacks_idx:   dict = {}
     if groupes_info:
         for g in groupes_info:
             if g.get("etudiants"):
                 filieres = [e.get("filiere", "") for e in g["etudiants"] if e.get("filiere")]
+                stacks   = [e.get("stacks", "")  for e in g["etudiants"] if e.get("stacks")]
                 filieres_idx[g["id"]] = " ".join(filieres)
+                stacks_idx[g["id"]]   = " ".join(stacks)
 
-    # Capacité des projets
     caps = capacite_projets or {}
 
     # ── 1. Construction des préférences ordonnées par groupe ──────────────
@@ -226,15 +220,18 @@ def affecter_projets(
         # Calcul du score composite pour ce couple (groupe, projet)
         p_info    = projets_idx.get(projet_id, {})
         filiere   = filieres_idx.get(groupe_id)
+        stacks    = stacks_idx.get(groupe_id)
         comp_req  = p_info.get("competences_requises")
         enc_id    = p_info.get("encadrant_id")
 
         score = calculer_score(
-            priorite        = priorite,
-            filiere_groupe  = filiere,
+            priorite           = priorite,
+            filiere_groupe     = filiere,
             competences_projet = comp_req,
-            encadrant_id    = enc_id,
-            charge_encadrants = charge_encadrants,
+            encadrant_id       = enc_id,
+            charge_encadrants  = charge_encadrants,
+            stacks_groupe      = stacks,
+            poids              = poids_override,
         )
 
         # Capacité maximale du projet
@@ -386,20 +383,15 @@ def affecter_projets_avec_rapport(
     projets_info: Optional[list[dict]] = None,
     groupes_info: Optional[list[dict]] = None,
     capacite_projets: Optional[dict]   = None,
+    poids_override: Optional[Dict[str, float]] = None,
 ) -> tuple[dict, dict]:
     """
     Version étendue retournant (résultat, rapport).
-    À utiliser dans main.py pour exposer le rapport via l'API.
-
-    Exemple dans main.py :
-        resultats, rapport = affecter_projets_avec_rapport(
-            choix_list    = choix_list,
-            projets_info  = [p.__dict__ for p in db.query(models.Projet).all()],
-            groupes_info  = [g.__dict__ for g in db.query(models.Groupe).all()],
-        )
     """
-    # Calcul du résultat
-    resultat = affecter_projets(choix_list, projets_info, groupes_info, capacite_projets)
+    resultat = affecter_projets(
+        choix_list, projets_info, groupes_info,
+        capacite_projets, poids_override
+    )
 
     # Reconstruction des préférences pour le rapport
     preferences: dict[int, list[tuple[int, int]]] = {}
