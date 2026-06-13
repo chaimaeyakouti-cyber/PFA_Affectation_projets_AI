@@ -84,7 +84,8 @@ export const modifierAffectation = (id: number, nouveau_projet_id: number) =>
   API.put(`/affectations/${id}/modifier?nouveau_projet_id=${nouveau_projet_id}`)
 
 // ── EXPORT ───────────────────────────────────────
-export const exportJson = () => API.get('/export/json')
+export const exportJson = () => API.get('/admin/export?format=json')
+export const exportCsv  = () => API.get('/admin/export?format=csv', { responseType: 'blob' })
 
 // ── AUTH ─────────────────────────────────────────
 export const registerUser   = (data: any) => API.post('/register', data)

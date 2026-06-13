@@ -8,6 +8,8 @@ import {
   getAffectations,
   lancerAffectation,
   supprimerGroupe,
+  exportCsv,
+  exportJson,
 } from '../../services/api'
 
 const P = {
@@ -114,9 +116,6 @@ export default function CoordinateurDashboard() {
   }
 
   // ── Helpers config sliders α/β/γ ─────────────────────────────────────
-  // Maintient toujours poids_priorite + poids_adequation + poids_charge ≈ 1.0
-  // Quand on bouge un slider, on redistribue la différence sur les 2 autres
-  // proportionnellement à leurs valeurs actuelles.
   const updatePoids = (key: 'poids_priorite' | 'poids_adequation' | 'poids_charge', value: number) => {
     setConfig(prev => {
       const clamped = Math.min(1, Math.max(0, value))
@@ -126,7 +125,6 @@ export default function CoordinateurDashboard() {
 
       const next: MoteurConfig = { ...prev, [key]: clamped }
       if (sommeAutres <= 0) {
-        // répartition égale si les autres sont à 0
         next[others[0]] = restant / 2
         next[others[1]] = restant / 2
       } else {
@@ -135,12 +133,10 @@ export default function CoordinateurDashboard() {
         })
       }
 
-      // Arrondi propre à 2 décimales pour éviter les artefacts flottants
       next.poids_priorite   = Math.round(next.poids_priorite   * 100) / 100
       next.poids_adequation = Math.round(next.poids_adequation * 100) / 100
       next.poids_charge     = Math.round(next.poids_charge     * 100) / 100
 
-      // Corriger un éventuel écart d'arrondi sur le slider qu'on vient de bouger
       const total = next.poids_priorite + next.poids_adequation + next.poids_charge
       const ecart = Math.round((1 - total) * 100) / 100
       if (ecart !== 0) {
@@ -181,11 +177,41 @@ export default function CoordinateurDashboard() {
     setMessage('')
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-await supprimerGroupe(groupe.id, currentUser.id)
+      await supprimerGroupe(groupe.id, currentUser.id)
       setMessage(`Groupe "${groupe.nom}" supprimé.`)
       await loadAll()
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'Erreur lors de la suppression du groupe.')
+    }
+  }
+
+  // ── Export CSV / JSON des résultats ──────────────────────────────────
+  const handleExportCsv = async () => {
+    try {
+      const res = await exportCsv()
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'affectations.csv'
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || "Erreur lors de l'export CSV.")
+    }
+  }
+
+  const handleExportJson = async () => {
+    try {
+      const res = await exportJson()
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'affectations.json'
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || "Erreur lors de l'export JSON.")
     }
   }
 
@@ -512,17 +538,26 @@ await supprimerGroupe(groupe.id, currentUser.id)
                   <div style={{ ...panelStyle, marginTop: 22, overflow: 'hidden', padding: 0 }}>
                     <div style={{ padding: '16px 20px', borderBottom: `1px solid ${P.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                       <div style={{ fontWeight: 800, color: P.text }}>Résultats générés</div>
-                      {launchRapport && (
-                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          <Pill label="Équité" value={launchRapport.equity_score?.toFixed(2)} />
-                          <Pill label="1er vœu" value={`${launchRapport.taux_premier_voeu}%`} />
-                          <Pill
-                            label="CDC"
-                            value={launchRapport.conforme_cdc ? '✓ Conforme' : '✗ Non conforme'}
-                            tone={launchRapport.conforme_cdc ? 'success' : 'warning'}
-                          />
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {launchRapport && (
+                          <>
+                            <Pill label="Équité" value={launchRapport.equity_score?.toFixed(2)} />
+                            <Pill label="1er vœu" value={`${launchRapport.taux_premier_voeu}%`} />
+                            <Pill
+                              label="CDC"
+                              value={launchRapport.conforme_cdc ? '✓ Conforme' : '✗ Non conforme'}
+                              tone={launchRapport.conforme_cdc ? 'success' : 'warning'}
+                            />
+                          </>
+                        )}
+                        {/* ── Export CSV / JSON ── */}
+                        <button onClick={handleExportCsv} className="action-btn" style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
+                          📊 Export CSV
+                        </button>
+                        <button onClick={handleExportJson} className="action-btn" style={{ background: P.light, color: P.mid, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
+                          📄 Export JSON
+                        </button>
+                      </div>
                     </div>
 
                     {launchConfigUtilisee && (
