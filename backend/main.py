@@ -5,6 +5,9 @@ import models, schemas
 from database import engine, SessionLocal
 import sys, os, hashlib, json
 from datetime import datetime
+import csv
+import io
+from fastapi.responses import StreamingResponse
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'AI_engine'))
 from affectation import affecter_projets_avec_rapport
@@ -636,3 +639,39 @@ def get_user_by_email(email: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(404, "Utilisateur introuvable")
     return user
+
+@app.get("/admin/export")
+def export_resultats(
+    format: str = "json",   # "json" ou "csv"
+    db: Session = Depends(get_db),
+):
+    affectations = db.query(models.Affectation).all()
+    rows = []
+    for a in affectations:
+        groupe = db.query(models.Groupe).filter(models.Groupe.id == a.groupe_id).first()
+        projet = db.query(models.Projet).filter(models.Projet.id == a.projet_id).first() if a.projet_id else None
+        enc = db.query(models.Encadrant).filter(models.Encadrant.id == projet.encadrant_id).first() if projet else None
+        rows.append({
+            "groupe_id": a.groupe_id,
+            "groupe_nom": groupe.nom if groupe else None,
+            "projet_id": a.projet_id,
+            "projet_titre": projet.titre if projet else None,
+            "encadrant": f"{enc.prenom} {enc.nom}" if enc else None,
+            "encadrant_email": enc.email if enc else None,
+            "statut": a.valide,
+        })
+
+    if format == "csv":
+        buffer = io.StringIO()
+        writer = csv.DictWriter(buffer, fieldnames=rows[0].keys() if rows else [])
+        writer.writeheader()
+        writer.writerows(rows)
+        buffer.seek(0)
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=affectations.csv"},
+        )
+
+    # JSON par défaut
+    return rows
