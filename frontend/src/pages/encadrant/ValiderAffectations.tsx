@@ -113,8 +113,14 @@ export default function ValiderAffectations() {
       .map(c => c.groupe_id)
     return groupes.filter(g =>
       candidatIds.includes(g.id) &&
-      (g.id === groupeActuelId || !idsAffectes.includes(g.id))
+      g.id !== groupeActuelId &&
+      !idsAffectes.includes(g.id)
     )
+  }
+
+  const groupesDisponibles = (groupeActuelId: number) => {
+    const idsAffectes = affectations.map(a => a.groupe_id)
+    return groupes.filter(g => g.id !== groupeActuelId && !idsAffectes.includes(g.id))
   }
 
   const handleValider = async (id: number) => {
@@ -199,6 +205,8 @@ export default function ValiderAffectations() {
                 ? calculerAdequation(groupe.etudiants, projet.competences_requises)
                 : 0
               const eligibles = groupesEligibles(aff.projet_id, aff.groupe_id)
+              const disponibles = groupesDisponibles(aff.groupe_id)
+              const candidats = eligibles.length > 0 ? eligibles : disponibles
 
               return (
                 <div key={aff.id} style={{ background: P.card, borderRadius: 16, border: `1px solid ${P.border}`, padding: 24 }}>
@@ -255,19 +263,17 @@ export default function ValiderAffectations() {
                     >
                       {aff.valide === 'validé' ? '✅ Déjà validée' : <>✓ Valider l'affectation</>}
                     </button>
-                    {eligibles.length > 1 && (
-                      <button
-                        onClick={() => setModalAffId(aff.id)}
-                        className="action-btn"
-                        style={{
-                          background: '#fff', color: P.text, border: `1px solid ${P.border}`,
-                          borderRadius: 10, padding: '12px 18px', fontWeight: 700, fontSize: 14,
-                          display: 'flex', alignItems: 'center', gap: 8,
-                        }}
-                      >
-                        🔄 Réaffecter à un autre groupe
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setModalAffId(aff.id)}
+                      className="action-btn"
+                      style={{
+                        background: '#fff', color: P.text, border: `1px solid ${P.border}`,
+                        borderRadius: 10, padding: '12px 18px', fontWeight: 700, fontSize: 14,
+                        display: 'flex', alignItems: 'center', gap: 8,
+                      }}
+                    >
+                      Refuser / réaffecter
+                    </button>
                   </div>
 
                   {/* ── Modal de réaffectation ── */}
@@ -277,19 +283,28 @@ export default function ValiderAffectations() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
                     }}>
                       <div style={{ background: '#fff', borderRadius: 18, padding: 28, width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
-                        <h3 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 800, color: P.text }}>Réaffecter à un autre groupe</h3>
-                        <p style={{ color: P.muted, fontSize: 13, marginBottom: 18 }}>Sélectionnez un groupe disponible pour ce projet</p>
+                        <h3 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 800, color: P.text }}>Refuser et réaffecter</h3>
+                        <p style={{ color: P.muted, fontSize: 13, marginBottom: 18 }}>
+                          {eligibles.length > 0
+                            ? 'Groupes ayant choisi ce projet et encore disponibles.'
+                            : 'Aucun autre groupe n’a choisi ce projet. Les groupes libres sont proposés en alternative.'}
+                        </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {eligibles.map(g => (
+                          {candidats.length === 0 && (
+                            <div style={{ background: P.warningBg, color: P.warning, borderRadius: 12, padding: 14, fontSize: 13, fontWeight: 700 }}>
+                              Aucun autre groupe disponible pour cette réaffectation.
+                            </div>
+                          )}
+                          {candidats.map(g => (
                             <div
                               key={g.id}
                               className="group-pick"
                               onClick={() => handleReaffecter(aff.id, g.id)}
                               style={{
-                                border: `1.5px solid ${g.id === aff.groupe_id ? P.accent : P.border}`,
+                                border: `1.5px solid ${P.border}`,
                                 borderRadius: 12, padding: 14,
-                                background: g.id === aff.groupe_id ? P.light : '#fff',
+                                background: '#fff',
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontWeight: 700, color: P.text }}>
