@@ -58,6 +58,9 @@ export const getMesChoix = async (userId: number) => {
   }
 }
 
+export const reaffecterGroupe = (affId: number, nouveauGroupeId: number) =>
+  API.put(`/affectations/${affId}/reaffecter?nouveau_groupe_id=${nouveauGroupeId}`)
+
 // Modifier un choix existant (tant que non verrouillé)
 export const modifierChoix = (choixId: number, data: { projet_id: number; priorite: number }) =>
   API.put(`/choix/${choixId}`, data)

@@ -398,6 +398,18 @@ def lancer_affectation(
             "gamma": config.poids_charge,
         }
     }
+@app.put("/affectations/{affectation_id}/reaffecter")
+def reaffecter_affectation(affectation_id: int, nouveau_groupe_id: int, db: Session = Depends(get_db)):
+    affectation = db.query(models.Affectation).filter(models.Affectation.id == affectation_id).first()
+    if not affectation:
+        raise HTTPException(404, "Affectation introuvable")
+    groupe = db.query(models.Groupe).filter(models.Groupe.id == nouveau_groupe_id).first()
+    if not groupe:
+        raise HTTPException(404, "Groupe introuvable")
+    affectation.groupe_id = nouveau_groupe_id
+    affectation.valide = "modifié"
+    db.commit()
+    return {"message": f"Affectation {affectation_id} réaffectée au groupe {groupe.nom}"}
 
 @app.get("/affectations/", response_model=list[schemas.Affectation])
 def get_affectations(db: Session = Depends(get_db)):
