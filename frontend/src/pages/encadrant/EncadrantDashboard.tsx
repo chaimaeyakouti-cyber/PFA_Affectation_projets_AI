@@ -10,6 +10,7 @@ function EncadrantDashboard() {
   const [nbValides, setNbValides] = useState(0)
   const [nbAttente, setNbAttente] = useState(0)
   const [nomEncadrant, setNomEncadrant] = useState('')
+  const [mesProjets, setMesProjets] = useState<any[]>([])
   const chargePct = Math.min(100, Math.round((nbProjets / CHARGE_MAX_ENCADRANT) * 100))
   const chargeMaxAtteinte = nbProjets >= CHARGE_MAX_ENCADRANT
 
@@ -19,6 +20,7 @@ function EncadrantDashboard() {
 
     Promise.all([getProjets(), getAffectations()]).then(([projRes, affRes]) => {
       const mesProjets = projRes.data.filter((p: any) => p.encadrant_id === user.encadrant_id)
+      setMesProjets(mesProjets)
       setNbProjets(mesProjets.length)
 
       const mesProjetsIds = mesProjets.map((p: any) => p.id)
@@ -107,6 +109,53 @@ function EncadrantDashboard() {
               style={{ width: `${chargePct}%` }}
             />
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow p-6 border border-gray-100 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h3 className="font-bold text-gray-800 text-lg">Projets proposés</h3>
+              <p className="text-gray-500 text-sm">
+                Liste des sujets déposés par cet encadrant.
+              </p>
+            </div>
+            <span className="bg-cyan-50 text-cyan-800 text-xs px-3 py-1 rounded-full font-semibold">
+              {mesProjets.length} projet(s)
+            </span>
+          </div>
+
+          {mesProjets.length === 0 ? (
+            <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-6 text-center">
+              <p className="font-semibold text-slate-700">Aucun projet proposé pour le moment.</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Les nouveaux sujets apparaîtront ici après leur création.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {mesProjets.map((projet: any) => (
+                <div key={projet.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h4 className="font-bold text-slate-900">{projet.titre}</h4>
+                    <span className="shrink-0 bg-white text-cyan-800 border border-cyan-100 text-xs px-2 py-1 rounded-full font-semibold">
+                      {projet.domaine || 'Projet'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 line-clamp-2 mb-3">
+                    {projet.description || 'Aucune description renseignée.'}
+                  </p>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                      Compétences requises
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      {projet.competences_requises || 'Non précisées'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
