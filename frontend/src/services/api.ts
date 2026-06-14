@@ -36,6 +36,7 @@ export const getEtudiants     = ()          => API.get('/etudiants/')
 // ── ENCADRANTS ───────────────────────────────────
 export const creerEncadrant   = (data: any) => API.post('/encadrants/', data)
 export const getEncadrants    = ()          => API.get('/encadrants/')
+export const supprimerEncadrant = (encadrantId: number) => API.delete(`/encadrants/${encadrantId}`)
 
 // ── PROJETS ──────────────────────────────────────
 export const creerProjet             = (data: any) => API.post('/projets/', data)

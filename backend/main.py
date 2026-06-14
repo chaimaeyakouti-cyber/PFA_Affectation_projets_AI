@@ -267,6 +267,34 @@ def get_encadrants(db: Session = Depends(get_db)):
     return db.query(models.Encadrant).all()
 
 
+@app.delete("/encadrants/{encadrant_id}")
+def delete_encadrant(
+    encadrant_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Utilisateur = Depends(get_current_user),
+):
+    require_role(current_user, "coordinateur")
+
+    encadrant = db.query(models.Encadrant).filter(models.Encadrant.id == encadrant_id).first()
+    if not encadrant:
+        raise HTTPException(status_code=404, detail="Encadrant introuvable")
+
+    projets_ids = [
+        p.id for p in db.query(models.Projet.id).filter(models.Projet.encadrant_id == encadrant_id).all()
+    ]
+
+    if projets_ids:
+        db.query(models.Choix).filter(models.Choix.projet_id.in_(projets_ids)).delete(synchronize_session=False)
+        db.query(models.Affectation).filter(models.Affectation.projet_id.in_(projets_ids)).delete(synchronize_session=False)
+        db.query(models.Projet).filter(models.Projet.id.in_(projets_ids)).delete(synchronize_session=False)
+
+    db.query(models.Utilisateur).filter(models.Utilisateur.encadrant_id == encadrant_id).delete(synchronize_session=False)
+    db.delete(encadrant)
+    db.commit()
+
+    return {"message": f"Encadrant '{encadrant.nom}' supprime avec succes"}
+
+
 @app.post("/projets/", response_model=schemas.Projet)
 def create_projet(projet: schemas.ProjetCreate, db: Session = Depends(get_db)):
     encadrant = db.query(models.Encadrant).filter(models.Encadrant.id == projet.encadrant_id).first()

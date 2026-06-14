@@ -157,7 +157,7 @@ export default function Resultats() {
             background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
             borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13,
             fontFamily: "Inter, system-ui, sans-serif",
-          }}>â† Retour</button>
+          }}>Retour</button>
           <span style={{ color: '#A5F3FC', fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>Résultats d'affectation</span>
           <button onClick={() => { localStorage.removeItem('user'); localStorage.removeItem('access_token'); navigate('/') }} style={{
             marginLeft: 'auto', background: '#fff', border: 'none', color: P.deep,
@@ -277,7 +277,7 @@ export default function Resultats() {
                         <div style={{ color: P.text, fontSize: 13, fontWeight: 600 }}> {resultatFinal.encadrant_nom}</div>
                         {resultatFinal.encadrant_email && (
                           <div style={{ color: P.mid, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>
-                            âœ‰ï¸ <a href={`mailto:${resultatFinal.encadrant_email}`} style={{ color: P.mid }}>{resultatFinal.encadrant_email}</a>
+                            Email : <a href={`mailto:${resultatFinal.encadrant_email}`} style={{ color: P.mid }}>{resultatFinal.encadrant_email}</a>
                           </div>
                         )}
                       </div>
@@ -286,7 +286,7 @@ export default function Resultats() {
                     {resultatFinal.rang_obtenu && (
                       <div style={{ marginTop: 8 }}>
                         <span style={{ background: '#D1FAE5', color: '#065F46', fontSize: 11, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600, padding: '2px 10px', borderRadius: 20 }}>
-                          ✓ Choix n°{resultatFinal.rang_obtenu}
+                          Choix n°{resultatFinal.rang_obtenu}
                         </span>
                       </div>
                     )}
@@ -311,7 +311,7 @@ export default function Resultats() {
                         <div style={{ color: P.text, fontSize: 13, fontFamily: "Inter, system-ui, sans-serif" }}>
                           {e.nom} {e.prenom}
                           {groupe.chef_id != null && i === 0 && (
-                            <span style={{ marginLeft: 6, fontSize: 10, color: P.accent }}>👑</span>
+                            <span style={{ marginLeft: 6, fontSize: 10, color: P.accent }}>Chef</span>
                           )}
                         </div>
                         <div style={{ color: P.muted, fontSize: 11, fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -330,7 +330,7 @@ export default function Resultats() {
                         <div key={c.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <span style={{ width: 20, height: 20, borderRadius: '50%', background: c.priorite === 1 ? P.accent : c.priorite === 2 ? '#22D3EE' : '#A5F3FC', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontFamily: "Inter, system-ui, sans-serif", fontWeight: 700 }}>{c.priorite}</span>
                           <span style={{ color: P.text, fontSize: 12, fontFamily: "Inter, system-ui, sans-serif" }}>{getProjetTitre(c.projet_id)}</span>
-                          {c.priorite === resultatFinal.rang_obtenu && <span style={{ color: P.accent, fontSize: 11 }}>âœ“</span>}
+                          {c.priorite === resultatFinal.rang_obtenu && <span style={{ color: P.accent, fontSize: 11 }}>obtenu</span>}
                         </div>
                       ))}
                     </div>
