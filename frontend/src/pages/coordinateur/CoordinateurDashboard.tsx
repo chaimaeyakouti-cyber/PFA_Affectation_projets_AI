@@ -8,6 +8,7 @@ import {
   getAffectations,
   lancerAffectation,
   supprimerGroupe,
+  supprimerEncadrant,
   exportCsv,
   exportJson,
 } from '../../services/api'
@@ -199,6 +200,25 @@ export default function CoordinateurDashboard() {
     }
   }
 
+  const handleSupprimerEncadrant = async (encadrant: Encadrant) => {
+    const lesProjets = projets.filter(p => p.encadrant_id === encadrant.id)
+    const detail = lesProjets.length > 0
+      ? ` Ses ${lesProjets.length} projet(s), choix et affectations associés seront aussi supprimés.`
+      : ''
+    const ok = window.confirm(`Supprimer l'encadrant "${encadrant.nom}" ?${detail}`)
+    if (!ok) return
+
+    setError('')
+    setMessage('')
+    try {
+      await supprimerEncadrant(encadrant.id)
+      setMessage(`Encadrant "${encadrant.nom}" supprimé.`)
+      await loadAll()
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || "Erreur lors de la suppression de l'encadrant.")
+    }
+  }
+
   // ── Export CSV / JSON des résultats ──────────────────────────────────
   const handleExportCsv = async () => {
     try {
@@ -343,12 +363,17 @@ export default function CoordinateurDashboard() {
                         const lesProjets = projets.filter(p => p.encadrant_id === enc.id)
                         return (
                           <div key={enc.id} style={{ background: P.light, borderRadius: 10, padding: 16 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <Avatar label={enc.nom} />
                               <div>
                                 <div style={{ fontWeight: 700, color: P.text }}>{enc.nom}</div>
                                 <div style={{ color: P.muted, fontSize: 12 }}>{enc.email}</div>
                               </div>
+                              </div>
+                              <button onClick={() => handleSupprimerEncadrant(enc)} className="action-btn" style={{ background: P.errorBg, color: P.error, border: '1px solid #FECACA', borderRadius: 8, padding: '6px 9px', fontSize: 11, fontWeight: 800 }}>
+                                Supprimer
+                              </button>
                             </div>
                             {lesProjets.length === 0 ? (
                               <span style={mutedStyle}>Aucun projet proposé</span>

@@ -69,23 +69,14 @@ export default function Login() {
               <h1 style={{ margin: 0, fontSize: 44, lineHeight: 1.05, letterSpacing: -0.4, fontWeight: 800 }}>
                 Un espace clair pour piloter les choix, les conflits et les résultats.
               </h1>
-              <p style={{ margin: '22px 0 0', color: '#D9F7FB', fontSize: 16, lineHeight: 1.7 }}>
-                Étudiants, encadrants et coordinateurs travaillent dans le même flux : groupes, projets, préférences et validation finale.
+              <p style={{ margin: '22px 0 0', color: '#D9F7FB', fontSize: 16, lineHeight: 1.6, maxWidth: 400 }}>
+                Groupes, projets et validations réunis dans un seul espace.
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            {[
-              ['IA', 'Gale-Shapley'],
-              ['3', 'choix par groupe'],
-              ['1', 'vue coordinateur'],
-            ].map(([value, label]) => (
-              <div key={label} style={{ border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16 }}>
-                <div style={{ fontSize: 24, fontWeight: 800 }}>{value}</div>
-                <div style={{ color: '#A5F3FC', fontSize: 12 }}>{label}</div>
-              </div>
-            ))}
+          <div style={{ border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.08)', borderRadius: 999, padding: '12px 18px', color: '#D9F7FB', fontSize: 13, fontWeight: 700, width: 'fit-content' }}>
+            Moteur IA + validation encadrant
           </div>
         </section>
 
