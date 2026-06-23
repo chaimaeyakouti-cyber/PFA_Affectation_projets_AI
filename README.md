@@ -72,5 +72,5 @@ La plateforme segmente les cas d'utilisation selon trois espaces utilisateurs s�
 ### Déploiement local rapide
 1. Clonez le dépôt GitHub :
 ```bash
-   git clone [https://github.com/votre-username/MiniProj-AI.git](https://github.com/votre-username/MiniProj-AI.git)
-   cd MiniProj-AI
+   git clone https://github.com/chaimaeyakouti/PFA_Affectation_projets_AI.git
+   cd PFA_Affectation_projets_AI
